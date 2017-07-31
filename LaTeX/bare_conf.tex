@@ -219,7 +219,7 @@
 
 % *** ALIGNMENT PACKAGES ***
 %
-%\usepackage{array}
+\usepackage{array}
 % Frank Mittelbach's and David Carlisle's array.sty patches and improves
 % the standard LaTeX2e array and tabular environments to provide better
 % appearance and additional user controls. As the default LaTeX2e table
@@ -231,8 +231,8 @@
 % http://www.ctan.org/tex-archive/macros/latex/required/tools/
 
 
-%\usepackage{mdwmath}
-%\usepackage{mdwtab}
+\usepackage{mdwmath}
+\usepackage{mdwtab}
 % Also highly recommended is Mark Wooding's extremely powerful MDW tools,
 % especially mdwmath.sty and mdwtab.sty which are used to format equations
 % and tables, respectively. The MDWtools set is already installed on most
@@ -245,7 +245,7 @@
 % quality.
 
 
-%\usepackage{eqparbox}
+\usepackage{eqparbox}
 % Also of notable interest is Scott Pakin's eqparbox package for creating
 % (automatically sized) equal width boxes - aka "natural width parboxes".
 % Available at:
@@ -512,10 +512,10 @@ As the development of smart devices equipped with GPS, here comes a large amount
 \textbf{8.contributions}
 
 \begin{itemize}
-	\item We propose a GPU-accelerated in-memory trajectory storage system which support both range query and local time shifting based similarity query.
-	\item We design a GPU-friendly storage component satisfying the requirement of pruning on both two kinds of query.
+	\item We propose a GPU-accelerated in-memory trajectory storage system which support both range query and local time shifting based top-k similarity query on a single index.
+	\item We design an quadtree integrated trajectory storage component, not only works for GPU-accelerated range query but also exploiting GPU's parallel power in accelerating top-k similarity query.
 	\item We design a novel solution of accelerating local time shifting based similarity query on our storage component by exploiting GPU's parallel power.
-	\item We deploy our system on server, evaluate the performance, and prove that our system get the 3x higher performance than state-of-the-art system.
+	\item We implement our system on server, evaluate the performance, and prove that our system get 4x speedup for top-k similarity comparing to baseline, and meanwhile, get similar performance on range query comparing to state-of-the-art systems not originally supporting local time shifting based top-k similarity query, with similar memory consumption.
 \end{itemize}
 	 
 \textbf{9.organization}
@@ -573,9 +573,9 @@ Then we introduce some background knowledge of GPU used in our design.
 %	\end{figure*}
 
 \subsection{GPU computing using CUDA[]}
-We design GTS based on CUDA proposed by Nvidia, a programming framework for GPU computing. In this part we introduce some background of GPU and basic concept in CUDA. GPU follows Single Intruction Multiple Data (SIMD) parallel model, indicating all of the cores in an Stream Microprocessor (SM) executing the same instruction on different data at the same time. There are tens of SMs in one GPU, each of which has tens of cores, forming a two-level parallel architecture. In CUDA, this architecture is reflected in the division of grid, block and thread. When one program, called kernel, is loaded in CUDA, a grid is generated, including mass of blocks. The block contains a fixed number of threads, which runs on an SM of GPU. Threads in the same block can share a high speed but small volume local memory on SM, but threads in different blocks can only use slow GPU global memory to exchange information, requiring us to divide the task properly into different blocks. 
+We design GTS based on CUDA proposed by Nvidia, a programming framework for GPU computing. In this part we introduce some background of GPU and basic concept in CUDA. GPU follows Single Intruction Multiple Data (SIMD) parallel model, indicating all of the cores in an Stream Microprocessor (SM) executing the same instruction on different data at the same time. There are tens of SMs in one GPU, each of which has tens of cores, forming a two-level parallel architecture. In CUDA, this architecture is reflected in the division of grid, block and thread. When one program, called kernel, is loaded in CUDA, a grid is generated, including mass of blocks. The block contains a fixed number of threads, which runs on an SM of GPU. Threads in the same block can share a high speed but small volume local memory on SM, and threads in different blocks can use a slower GPU global memory to exchange information. This requires us to divide the task properly into different blocks properly. 
 
-There are three main issues when using GPU. First, accessing pattern is a main issue when accessing global memory. When hundreds of threads in one block accessing data from global memory, if the data each thread needs are nearby, GPU will coalesce hundreds of accessing request to several continuous accessing, improving the bandwidth for tens of times. For example, if thread 1,2,..,32 access the data at offset 33,34,...,64 respectively, 32 data loading transitions will be combined to one single transition. Obviously it requires the data accessing by threads in a block are stored continuously. Second, the load balancing makes sure that all cores of GPU are not idle, leading to a high throughtput. It means we should assign almost equal amount of computation on one thread or one block. Third, PCI-E interface, the bridge between main memory and GPU, has much lower bandwidth than global memory and local memory. So the data transferring between main memory and GPU　should be reduced as much as possible to avoid the performance loss. These three issues raise a challenge for GTS to get a high speedup.
+There are three main issues when using GPU. First, accessing pattern is a main issue when accessing global memory. When hundreds of threads in one block read/write data from global memory, if the data each thread needs are nearby, GPU will coalesce hundreds of small accessing request to several big continuous accessing transactions. Because GPU has a high bandwidth but high latency global memory, by this coalescing threads can get needed data in a pretty small number of clock cycles. For example, if thread 1,2,..,32 access the data at offset 33,34,...,64 respectively, 32 data loading requests will be combined to one single transition. So if program access data from global memory, it is optimal when data read/writen by all threads in a block are stored continuously, and ensuring an optimal memory access pattern is significant for making full use of GPU. Second, the load balancing makes sure that all cores of GPU are not idle, leading to a high throughtput. It means we should assign almost equal amount of computation on one thread or one block. Third, there is a tradeoff about the layout of large-scale trajectory data. The capability of GPU global memory is limit, for example, 12GB in most of ultimate level GPU devices. So we may think about store all data in host memory. However, PCI-E interface, the bridge between host memory and GPU, has much lower bandwidth than global memory which is inside GPU. This requires usto reduce data transferring between main memory and GPU as much as possible to avoid the performance loss. Comparing to other parallel computing tools based on multi-core CPU such as MPI, these three issues raise a challenge for GTS to get a high speedup on GPU.
 
 \section{System Architecture}
 
@@ -588,7 +588,7 @@ Our system includes two parts, storage component and query engine. As the Figure
 \end{figure*}
 
 \subsection{Storage Component}
-In the design of storage component, we exploit the potential oppotunities of quadtree with mentor encoding\cite{DBLP:conf/gis/LettichOS15} with the consideration of GPGPU. We divide all trajectories into sub-trajectories with small cell, after which each cell in quadtree is related to a set of sub-trajectories. To rebuild the whole trajectory from sub-trajectories easily, we propose a data structure named "cell-based trajectories" for each trajectory, storing the cell's identification it goes through, according to its original order. Sub-trajectories and quadtree are stored in in host memory, which is usually large enough to store the whole data. And cell-based trajectories are stored in GPU global memory, for faster parallel pruning on similarity query. The detail of storage component will be introduced in Section IV.
+In the design of storage component, we exploit the potential oppotunities of quadtree with Morton encoding\cite{DBLP:conf/gis/LettichOS15} with the consideration of GPGPU and propose an index called GT-quadtree. We divide all trajectories into sub-trajectories with small cell, after which each cell in quadtree is related to a set of sub-trajectories. To rebuild the whole trajectory from sub-trajectories easily, we propose a data structure named "cell-based trajectories" for each trajectory, storing the cell's identification it goes through, according to its original order. Sub-trajectories and quadtree are stored in in host memory, which is usually large enough to store the whole data. And cell-based trajectories are stored in GPU global memory, for faster parallel pruning on similarity query. The detail of storage component will be introduced in Section IV.
 
 \subsection{Query Engine}
 Our query engine is designed for handling thousands of queries including three basic kinds in parallel, optimizing for executing time per query. For different kinds of query, we first adopt different pruning strategies to reduce unneccessary computation by help of index. After that, we divide the all the queries into tasks at both coarse-grained level and fine-grained level, according to the CUDA's programming framework. We then transmit as less data to GPU, which executes produced tasks in parallel and output the query results. We will illustrate query engine in Section V.
@@ -677,16 +677,18 @@ In this section, we introduce our query engine working on CPU-GPU hybrid environ
 \subsection{Range Query}
 (This part is simple and similar with work in other works, so use several sentence to describe.)
 
-For range queries, we consider the combination of two levels of parallel, containing parallel within query and parallel among queries to fit with the two-level parallelism model of CUDA programming. We achieve this in two step. 
+There have been a solution\cite{GPUTaxi} leveraging GPU to handle range query based on quadtree. However, this solution is based on a fact that all the points will be transfered into GPU memory, which is not realistic at a big data scene. In our solution, by integrate a usage table technique, we can also achieve a similar speedup even if data are not all in GPU memory.
 
-First, we filter sample points not within query ranges quickly through GT-quadtree. In this step, we first extract query's ID and their query ranges. Then, nodes in GT-quadtree whose cells are overlapped by the ranges of queries are retrieved and noted as candidate nodes, forming a mass of $\langle node, query\rangle $  pairs. It can be easily seen each candidate node should indeed be refined, for there exists at least one cell in it may include sample points within the result of range query. To prepare for the refine phase executed by GPU cores, we transfer trajectory data within retrieved node from host memory to GPU immediately after the node is marked as candidate, leaving CPU continue traversing the GT-quadtree simultaneously. To get around duplicated data transfering, we maintain a table recording the node which has been in GPU global memory and corresponding pointer so as to check whether node has been transfered to GPU.
+ For range queries, we consider the combination of two levels of parallel, containing parallel within query and parallel among queries to fit with the two-level parallelism model of CUDA programming. We achieve this in two step. 
+
+First, we filter sample points not within query ranges quickly through GT-quadtree. In this step, we first extract query's ID and their query ranges. Then, nodes in GT-quadtree whose cells are overlapped by the ranges of queries are retrieved and noted as candidate nodes, forming a mass of $\langle node, query\rangle $ pairs. It can be easily seen each candidate node should indeed be refined, for there exists at least one cell in it may include sample points within the result of range query. To prepare for the refine phase executed by GPU cores, the trajectory data within retrieved node are needed to be in GPU global memory. It is low efficient if duplicated data are transfered from host to GPU global memory, so we maintain a table recording the nodes whose data remain in GPU global memory and its corresponding pointer. Based on this technique, we first check whether the data of node are in GPU global memory. Only if neccessary, we transfer data of this node to GPU, otherwise the pointers of data are directly used to locate the required data. It is worth noting that CPU continue traversing the GT-quadtree simultaneously when transfering data, which can hide the latency caused by low-speed PCI to some extent. 
 
 At the second step, we refine the candidates on GPU in parallel and get the final results. Each thread block is assigned with a $\langle node, query\rangle $ pair, finding out sample points in node within query's range. In each thread block, to guarantee coalesce accessing, sample points are verified in loops. As mentioned in GT-quadtree, sample points of the same node are stored continuously in global memory. For this reason, we propose an strategy that one thread looks for one point in each loop and output whether it is within range according to thread ID until all points within the node are verified. In this strategy memory request of the threads are nearby, leading to coalesce accessing. For example, in the first loop, thread 0 handles point 0, thread 1 handles point 1, ..., and so on. In addition, reminding that each node in GT-quadtree contains sample points no more than $vol_{max}$, the load balance is achieved in this step.
 
 
 \subsection{Top-k Similarity Query}
 
-The goal of our solution is generating the result of top-k similarity queries in a short time, leveraging the parallel power of GPU. We use EDR as the similarity measurement, which is popular and performs well in most of recent works. [][] Our work can be migrated to other measurements whose calculation is based on dynamic programming algorithm, such as LCSS[]. Considering that GPU efficiency is low if the task load is small, we adapt the algorithm proposed by \cite{DBLP:conf/sigmod/ChenOO05} to fit with GPU architecture and design a filter and refine scheme, which is shown in Algorithm \ref{alg:TSQ_1}. The initial idea of this scheme is filtering some trajectories which can be assured not appearing in the result to avoid unneccessary expensive EDR computing. 
+The goal of our solution is generating the result of top-k similarity queries in a short time, leveraging the parallel power of GPU. We use EDR as the similarity measurement, which is popular and performs well in most of recent works. \cite{EDWP15}[] Our work can be migrated to other measurements whose calculation is based on dynamic programming algorithm, such as LCSS\cite{DBLP:conf/icde/VlachosGK02}. However, considering that GPU efficiency is low if the task load is small, it is suboptimal to directly migrate algorithm proposed by \cite{DBLP:conf/sigmod/ChenOO05} to GPU, because this algorithm execute only one EDR calculation after a filter phase. As a solution, we adapt this algorithm to fit with GPU architecture and design a new filter and refine scheme, which is shown in Algorithm \ref{alg:TSQ_1}. The initial idea of this scheme is filtering some trajectories which can be assured not appearing in the result to avoid unneccessary expensive EDR computing. 
 
 First, for each query, we use cell-based trajectories to calculate the lower bounds of EDR between query trajectory and trajectories in storage and add all trajectories to candidate set (line 3-5). After that, we find $\eta$ trajectories from candidate set whose lower bounds are the lowest, calculating the real EDR between query trajectory. Obtaining the upper bound of current top-k EDR distance of trajectories efficiently is a frequent operation for pruning, so a size-k priority queue of real EDR distance is maintained to handle this operation. (line 7-8). We then prune trajectories in candidate set whose lower bound is bigger than upper bound of current top-k EDR distance safely because we can assure they will never be chosen in following iterations (line 9). We repeat this process of choosing top-$\eta$ trajectories from candidate set and pruning until candidate set is empty. Finally trajectories in the priority queue are results of this top-k similarity query.
 
@@ -782,31 +784,82 @@ In this section, we conduct a multiview experiment based on two real trajectory 
 \subsubsection{Dataset}
 We use two real life trajectories datasets to test the performance in different trajectories distribution. The first is Shanghai Private Car Data, containing xxx trajectorys of private cars in Shanghai collected from July, 2014 to April, 2015. The sampling rate...  The size of the whole data is xxxGB. The second trajectory dataset is Geolife, the data collected by ....
 
+\subsubsection{Data Preprocessing}
 In our experiment, we seem the sequence of sample points of a single car as a trajectory. If the time stamp of one point is over 30 minutes later than one before in a trajectory, we call this point a "gap". We split the trajectory into several new trajectories according to these gaps. This is because we usually only concern about the trajectory of a single route especially when handling similarity query, and trajectory with these gaps is usually not a meaningful single route. For example, a trajectory of a single car may include sample points from home to office and ones from office to home, and after spliting it two meaningful trajectories can be generated. After processing we get at total xxx.....
 
-\subsubsection{Experiment setup}
-In query performance part, we compare the query time consumption of two kinds of queries in different baselines and state-of-the-art systems. For range query, we randomly generate 1000 range queries with different area and reckon the time used after all of queries are finished. We implement three baselines: SharkDB,ST2I and $GTS_{CPU}$.xxxxxxxxxxxx(the description of baselines)
-For similarity query, we first choose 1000 trajectories from dataset as the query set, and set different query parameters including $k$ and $\epsilon$ . Then, we execute similarity query with this query set and reckon the time consumption.
- 
+
+
+\subsubsection{Parameters}
+
+To systematically test the performance of our system, we conduct our experiments under various parameter settings. Table \ref{table_param} shows the range and default value of parameters we test in experiments. For range query, there are four parameters affecting the performance. In real life, queries from users vary from area, so we test for different size of MBB in range query. We also test the situations of different number of queries to evaluate the scalability of GTS. For top-k similarity search, the execution time under different k value and number of queries are recorded. As we show in section V the length of trajectory determines the complexity of EDR calculations so we test for different length to see whether GTS gets high performance at different situation. Size of cells are altered in all of experiments of both two kinds of queries.
+
+\begin{table}[!t]
+	% increase table row spacing, adjust to taste
+	\renewcommand{\arraystretch}{1.3}
+	% if using array.sty, it might be a good idea to tweak the value of
+	% \extrarowheight as needed to properly center the text within the cells
+	\caption{Parameters ranges and default values}
+	\label{table_param}
+	\centering
+	% Some packages, such as MDW tools, offer better commands for making tables
+	% than the plain LaTeX2e tabular which is used here.
+	\begin{tabular}{|c||c|c|c|}
+		\hline
+		Parameter & Meaning & Range & Default\\
+		\hline
+		$L_{cell}$ & size of each cell in grid & 0.05 - 0.4 & 0.1\\
+		\hline
+		$M_{cell}$ & max num. of points in a cell & 256 - 4096 & 1024\\
+		\hline
+		$\epsilon$ & matching threshold of EDR & 1 - 50 & 15\\
+		\hline
+		$S_{RQ}$ & area of range query's MBR & 0.01 - 4 & 0.5\\
+		\hline
+		$k$ & k value of top-\textbf{k} similarity query & 8 - 128 & 32\\
+		\hline
+		$N_{Q}$ & num. of queries & 256 - 8192 & 1024\\
+		\hline
+		$L_{QT}$ & length of query trajectory & 256 - 8192 & 1024\\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Compared baselines and systems}
+
+For range query, we implement two state-of-the-art systems supporting range query on GPU: STIG\cite{7498315} and the work of Zhang which using GPU to accelerate sparial query preocessing on big taxi trip data, noted as WOZ\cite{GPUTaxi}. However, these two systems are designed facing to spatial-temporal points rather than trajectories, so we add a data field in each point to represent the trajectory ID of it. To show the acceleration performance, we also implement CPU version GTS as the baseline method.
+
+For similarity query, we only implement the original EDR based top-k similarity query algorithm proposed in \cite{DBLP:conf/sigmod/ChenOO05} on CPU as the baseline because as far as we know we are first to utilize GPU to accelerate EDR based top-k similarity query. All of the queries are executed for 10 times and averages of the time consuming are recorded. 
+
+
+\subsubsection{Experiment Overview}
+
+We first test the memory comsumption of our system. We measure the average and highest memory usage of different system. The memory consumption is measured after finishing building index for different size dataset, to show that our system use a similar amount of memory comparing to systems not supporting local time shifting based top-k similarity query. All other parameters are tuned to the optimal case.
+
+After that, the scalability is tested. As there is no method to shut some cores in GPU, we can only test the situation with different number of GPUs.
+
+In query performance part, same as the most of previous works, we use query latency as our metric. We compare the query time latency of two kinds of queries in different baselines and state-of-the-art systems in a large query set situation. When testing range query, we randomly generate 1000 range queries with different areas and positions and reckon the time consumption during finishing all of queries. For similarity query, we first randomly choose 1000 trajectories from dataset as the query set. Then, we execute similarity query under the settings of different query parameters including $k$ and $\epsilon$. Queries are handled with formed query set and time consumption in both baseline method and GTS are then calculated. 
+
 
 We run all the experiments on a server equipped with ten-core Xeon E5-2650 v3 processor clocked at 2.3GHz, 64GB of RAM, 4TB of disk storage and an NVIDIA Tesla K80 GPU with 6GB graphical memory. Our system is implemented by C++ with CUDA 8.0, and operating system is CentOS 7.
 
 
-Metric:
-	throughtput and latency
-	memory consumption
+
+\subsection{Memory Efficiency}
+to show the memory consumption of our solution is not too larger than state-of-the-art methods.
 
 
-\subsection{Index Evaluation}
-\subsection{Query Performance}
+\subsection{Scalability}
 \subsubsection{Range Query}
 \subsubsection{Top-k similarity Query}
+
+\subsection{Query Latency}
 
 Compare with state-of-art method including TrajStore, SharkDB(Non-GPU method), ST2I+consistent storage(GPU method, intuitive approach, use s-t index to implement trajectory index) 
 show that our system is more accurate than TKSimGPU(GPU method)
 
-\subsection{Impact of Parameters}
-\subsection{Other Details Should Be Evaluated}
+\subsubsection{Range Query}
+
+\subsubsection{Top-k similarity Query}
 
 
 

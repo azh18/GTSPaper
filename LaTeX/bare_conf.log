@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/W32TeX) (preloaded format=pdflatex 2016.12.30)  21 JUL 2017 20:22
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/W32TeX) (preloaded format=pdflatex 2016.12.30)  31 JUL 2017 21:21
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -222,25 +222,71 @@ Package: algorithmic 2009/08/24 v0.1 Document Style `algorithmic'
 \ALC@tlm=\skip47
 \algorithmicindent=\skip48
 )
+(f:/TexLive/texmf-dist/tex/latex/tools/array.sty
+Package: array 2014/10/28 v2.4c Tabular extension package (FMi)
+\col@sep=\dimen128
+\extrarowheight=\dimen129
+\NC@list=\toks24
+\extratabsurround=\skip49
+\backup@length=\skip50
+)
+(f:/TexLive/texmf-dist/tex/latex/mdwtools/mdwmath.sty
+Package: mdwmath 1996/04/11 1.1 Nice mathematical things
+\sq@sqrt=\count110
+LaTeX Info: Redefining \sqrt on input line 84.
+)
+(f:/TexLive/texmf-dist/tex/latex/mdwtools/mdwtab.sty
+Package: mdwtab 1998/04/28 1.9 Table typesetting with style
+\tab@state=\count111
+\tab@columns=\count112
+\tab@preamble=\toks25
+\tab@shortline=\toks26
+\extrarowheight=\dimen130
+\tabextrasep=\dimen131
+\arrayextrasep=\dimen132
+\smarraycolsep=\dimen133
+\smarrayextrasep=\dimen134
+\tab@width=\dimen135
+\col@sep=\dimen136
+\tab@endheight=\dimen137
+\tab@leftskip=\skip51
+\tab@rightskip=\skip52
+\fn@notes=\box31
+\fn@width=\dimen138
+)
+(f:/TexLive/texmf-dist/tex/latex/eqparbox/eqparbox.sty
+Package: eqparbox 2013/03/15 v4.0 Create equal-widthed boxes
+\eqp@tempdima=\skip53
+\eqp@tempdimb=\skip54
+\eqp@tabular@box=\box32
+\eqp@list@box=\box33
+\eqp@list@indent=\skip55
+
+(f:/TexLive/texmf-dist/tex/latex/environ/environ.sty
+Package: environ 2014/05/04 v0.3 A new way to define environments
+
+(f:/TexLive/texmf-dist/tex/latex/trimspaces/trimspaces.sty
+Package: trimspaces 2009/09/17 v1.1 Trim spaces around a token list
+)))
 (f:/TexLive/texmf-dist/tex/latex/subfigure/subfigure.sty
 Package: subfigure 2002/03/15 v2.1.5 subfigure package
-\subfigtopskip=\skip49
-\subfigcapskip=\skip50
-\subfigcaptopadj=\dimen128
-\subfigbottomskip=\skip51
-\subfigcapmargin=\dimen129
-\subfiglabelskip=\skip52
-\c@subfigure=\count110
-\c@lofdepth=\count111
-\c@subtable=\count112
-\c@lotdepth=\count113
+\subfigtopskip=\skip56
+\subfigcapskip=\skip57
+\subfigcaptopadj=\dimen139
+\subfigbottomskip=\skip58
+\subfigcapmargin=\dimen140
+\subfiglabelskip=\skip59
+\c@subfigure=\count113
+\c@lofdepth=\count114
+\c@subtable=\count115
+\c@lotdepth=\count116
 
 ****************************************
 * Local config file subfigure.cfg used *
 ****************************************
 (f:/TexLive/texmf-dist/tex/latex/subfigure/subfigure.cfg)
-\subfig@top=\skip53
-\subfig@bottom=\skip54
+\subfig@top=\skip60
+\subfig@bottom=\skip61
 ) (./bare_conf.aux)
 \openout1 = `bare_conf.aux'.
 
@@ -259,17 +305,17 @@ LaTeX Font Info:    ... okay on input line 355.
 
 (f:/TexLive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count114
-\scratchdimen=\dimen130
-\scratchbox=\box31
-\nofMPsegments=\count115
-\nofMParguments=\count116
-\everyMPshowfont=\toks24
-\MPscratchCnt=\count117
-\MPscratchDim=\dimen131
-\MPnumerator=\count118
-\makeMPintoPDFobject=\count119
-\everyMPtoPDFconversion=\toks25
+\scratchcounter=\count117
+\scratchdimen=\dimen141
+\scratchbox=\box34
+\nofMPsegments=\count118
+\nofMParguments=\count119
+\everyMPshowfont=\toks27
+\MPscratchCnt=\count120
+\MPscratchDim=\dimen142
+\MPnumerator=\count121
+\makeMPintoPDFobject=\count122
+\everyMPtoPDFconversion=\toks28
 ) (f:/TexLive/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
 Package: pdftexcmds 2016/05/21 v0.22 Utility functions of pdfTeX for LuaTeX (HO
 )
@@ -331,7 +377,7 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 
 ]
-\c@define=\count120
+\c@define=\count123
 
 Underfull \hbox (badness 10000) in paragraph at lines 536--537
 []\OT1/ptm/m/n/10 A sam-ple point
@@ -342,9 +388,6 @@ Underfull \hbox (badness 6542) in paragraph at lines 558--559
 []\OT1/ptm/m/n/10 Given two tra-jec-to-ries
  []
 
-Missing character: There is no ã in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
 <pdf/architecture1.pdf, id=19, 1701.7487pt x 725.7705pt>
 File: pdf/architecture1.pdf Graphic file (type pdf)
 
@@ -357,9 +400,6 @@ File: pdf/Histo.pdf Graphic file (type pdf)
  <use pdf/Histo.pdf>
 Package pdftex.def Info: pdf/Histo.pdf used on input line 621.
 (pdftex.def)             Requested size: 247.53888pt x 63.05208pt.
-
-Underfull \vbox (badness 3189) has occurred while \output is active []
-
  [4 <./pdf/architecture1.pdf> <./pdf/Histo.pdf
 
 pdfTeX warning: pdflatex.exe (file ./pdf/Histo.pdf): PDF inclusion: multiple pd
@@ -405,13 +445,13 @@ pdfs with page group included in a single page
 pdfTeX warning: pdflatex.exe (file ./pdf/GTTree3.pdf): PDF inclusion: multiple 
 pdfs with page group included in a single page
 >] [6]
-Underfull \hbox (badness 10000) in paragraph at lines 731--732
+Underfull \hbox (badness 10000) in paragraph at lines 733--734
 []\OT1/ptm/m/n/10 Frequency Vec-tor of query tra-jec-tory $\OML/cmm/m/it/10 qFV
  \OT1/cmr/m/n/10 =
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 731--732
+Underfull \hbox (badness 10000) in paragraph at lines 733--734
 \OT1/cmr/m/n/10 [\OML/cmm/m/it/10 qFV[]; qFV[]; :::\OT1/cmr/m/n/10 ]$\OT1/ptm/m
 /n/10 ; FV of the tra-jec-tory in task
  []
@@ -419,29 +459,27 @@ Underfull \hbox (badness 10000) in paragraph at lines 731--732
 Missing character: There is no ã in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
-
-Underfull \vbox (badness 1286) has occurred while \output is active []
-
- [7]
+[7]
 Missing character: There is no ã in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
-
-<pdf/DPstate.pdf, id=86, 480.8635pt x 391.17664pt>
+ <pdf/DPstate.pdf, id=86, 480.8635pt x 391.17664pt>
 File: pdf/DPstate.pdf Graphic file (type pdf)
  <use pdf/DPstate.pdf>
-Package pdftex.def Info: pdf/DPstate.pdf used on input line 768.
+Package pdftex.def Info: pdf/DPstate.pdf used on input line 770.
 (pdftex.def)             Requested size: 199.16928pt x 162.01892pt.
 
-Underfull \hbox (badness 2564) in paragraph at lines 805--807
- \OT1/ptm/m/it/10 2) Top-k sim-i-lar-ity Query: [][] \OT1/ptm/m/n/10 Com-pare w
-ith state-of-art
+[8 <./pdf/DPstate.pdf, page is rotated 90 degrees>]
+Overfull \hbox (0.9026pt too wide) in paragraph at lines 806--825
+ [][] 
  []
 
 
-Underfull \vbox (badness 2237) has occurred while \output is active []
+Underfull \hbox (badness 1496) in paragraph at lines 857--859
+[]\OT1/ptm/m/n/10 Compare with state-of-art method in-clud-ing Tra-j-S-tore,
+ []
 
- [8 <./pdf/DPstate.pdf, page is rotated 90 degrees>] (./bare_conf.bbl)
+(./bare_conf.bbl [9])
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -453,32 +491,33 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[9
+[10
 
 ] (./bare_conf.aux) ) 
 Here is how much of TeX's memory you used:
- 3642 strings out of 493013
- 51596 string characters out of 6139287
- 124643 words of memory out of 5000000
- 7121 multiletter control sequences out of 15000+600000
- 36949 words of font info for 72 fonts, out of 8000000 for 9000
+ 4069 strings out of 493013
+ 56976 string characters out of 6139287
+ 131788 words of memory out of 5000000
+ 7517 multiletter control sequences out of 15000+600000
+ 42880 words of font info for 87 fonts, out of 8000000 for 9000
  1144 hyphenation exceptions out of 8191
- 40i,12n,26p,1576b,525s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 40i,14n,26p,1718b,525s stack positions out of 5000i,500n,10000p,200000b,80000s
 {f:/TexLive/texmf-dist/fonts/enc/dvips/base/8r.enc}<f:/Tex
 Live/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><f:/TexLive/texmf-dis
 t/fonts/type1/public/amsfonts/cm/cmmi10.pfb><f:/TexLive/texmf-dist/fonts/type1/
-public/amsfonts/cm/cmmi7.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts
-/cm/cmr10.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><f
-:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><f:/TexLive/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb><f:/TexLive/texmf-dist/fonts/ty
-pe1/public/amsfonts/symbols/msam10.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/t
-imes/utmb8a.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb><f:/Te
-xLive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb><f:/TexLive/texmf-dist/fonts/
-type1/urw/times/utmri8a.pfb>
-Output written on bare_conf.pdf (9 pages, 289168 bytes).
+public/amsfonts/cm/cmmi6.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts
+/cm/cmmi7.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><
+f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><f:/TexLive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><f:/TexLive/texmf-dist/fonts/typ
+e1/public/amsfonts/cm/cmsy10.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmsy7.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/symbols/ms
+am10.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb><f:/TexLive/te
+xmf-dist/fonts/type1/urw/times/utmbi8a.pfb><f:/TexLive/texmf-dist/fonts/type1/u
+rw/times/utmr8a.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on bare_conf.pdf (10 pages, 311544 bytes).
 PDF statistics:
- 144 PDF objects out of 1000 (max. 8388607)
- 106 compressed objects within 2 object streams
+ 155 PDF objects out of 1000 (max. 8388607)
+ 114 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  31 words of extra memory for PDF output out of 10000 (max. 10000000)
 
