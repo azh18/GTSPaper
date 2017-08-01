@@ -556,14 +556,14 @@ Then we introduce some background knowledge of GPU used in our design.
 	
 	\begin{define}[EDR distance\cite{DBLP:conf/sigmod/ChenOO05}]
 		Given two trajectories $t_{1}=\{p_{1},p_{2},\ldots,p_{n1+1}\},t_{2}=\{p_{1},p_{2},\ldots,p_{n2+1}\}$, the EDR distance between them is calculated by:
-		\begin{equation*}
+		\begin{equation}
 		EDR(t_{1},t_{2}) = 
 		\begin{cases}
 		n & \text{if $m=0$} \\
 		m & \text{if $n=0$} \\
 		\min \{EDR(Rest(t_{1}),\\Rest(t_{2})+subcost),\\EDR(Rest(t_{1}),t_{2})+1,\\EDR(t_{1},Rest(t_{2}))+1\} & \text{otherwise}
 		\end{cases}
-		\end{equation*}
+		\end{equation}
 		where $subcost = 0$ if $dist(t_{1}.p_{1},t_{2}.p_{1})\leqslant \varepsilon$ and $subcost = 1$ otherwise, and $Rest(t)=\{t.p_{2},\ldots ,t.p_{n+1}\}$, noting that $\varepsilon$ is a threshold set by users.
 	\end{define}
 	
@@ -675,11 +675,11 @@ Based on this fixed grid, similar with the method in \cite{DBLP:conf/gis/Lettich
 In this section, we introduce our query engine working on CPU-GPU hybrid environment. The goal of query engine is to handle both range queries and top-k similarity queries from thousands of clients and get speedup through executing tasks on GPU. For this two kinds of queries, we design parallel query algorithms respectively, including task division strategy and query procedure.
 
 \subsection{Range Query}
-(This part is simple and similar with work in other works, so use several sentence to describe.)
+% (This part is simple and similar with work in other works, so use several sentence to describe.)
 
-There have been a solution\cite{GPUTaxi} leveraging GPU to handle range query based on quadtree. However, this solution is based on a fact that all the points will be transfered into GPU memory, which is not realistic at a big data scene. In our solution, by integrate a usage table technique, we can also achieve a similar speedup even if data are not all in GPU memory.
+There have been a solution\cite{GPUTaxi} leveraging GPU to handle range query based on quadtree. However, this solution is based on a fact that all the points will be transfered into GPU memory, which is not realistic at a big data scene. In our solution, by integrate a usage table technique, we can also achieve a similar speedup even if data are not all in GPU memory. 
 
- For range queries, we consider the combination of two levels of parallel, containing parallel within query and parallel among queries to fit with the two-level parallelism model of CUDA programming. We achieve this in two step. 
+Similar to the most of related work, we consider the combination of two levels of parallel, containing parallel within query and parallel among queries to fit with the two-level parallelism model of CUDA programming. We achieve this in two step. 
 
 First, we filter sample points not within query ranges quickly through GT-quadtree. In this step, we first extract query's ID and their query ranges. Then, nodes in GT-quadtree whose cells are overlapped by the ranges of queries are retrieved and noted as candidate nodes, forming a mass of $\langle node, query\rangle $ pairs. It can be easily seen each candidate node should indeed be refined, for there exists at least one cell in it may include sample points within the result of range query. To prepare for the refine phase executed by GPU cores, the trajectory data within retrieved node are needed to be in GPU global memory. It is low efficient if duplicated data are transfered from host to GPU global memory, so we maintain a table recording the nodes whose data remain in GPU global memory and its corresponding pointer. Based on this technique, we first check whether the data of node are in GPU global memory. Only if neccessary, we transfer data of this node to GPU, otherwise the pointers of data are directly used to locate the required data. It is worth noting that CPU continue traversing the GT-quadtree simultaneously when transfering data, which can hide the latency caused by low-speed PCI to some extent. 
 
@@ -730,7 +730,11 @@ Algorithm 2 shows the procedure of generate FD in each thread block. Firstly we 
 	\label{alg:GetLB}
 	\begin{algorithmic}[1]
 		\REQUIRE ~~\\
-		Frequency Vector of query trajectory $qFV=[qFV_{1},qFV_{2},...]$; FV of the trajectory in task $tFV=[tFV_{1},tFV_{2},...]$; Number of cells $N_{cell}$;
+		Frequency Vector of query trajectory $qFV=[qFV_{1},qFV_{2},...]$;
+		
+		FV of the trajectory in task $tFV=[tFV_{1},tFV_{2},...]$;
+		
+		Number of cells $N_{cell}$;
 		\ENSURE ~~\\
 		Frequency Distance between $qFV$ and $tFV$: $FD$
 		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
@@ -760,21 +764,68 @@ After generating lower bound and pruning, a mass of EDR calculations tasks are w
 
 We designed an iterative framework for parallel EDR calculation. The EDR calculation, which is acutually a dynamic programming, can be divided into several independent steps of comparisons. Figure \ref{fig:DPstate} shows an example of calculating the EDR 　between two trajectorie $traj_1$ and $traj_2$ with length $m$ and $n$. Each value in a state (represented as $state[i][j]$) is calculated by comparing and choosing the minimun value of $\{state[i-1][j]+1,state[i][j-1]+1,state[i-1][j-1]+subcost\}$, according the definition of EDR in section 2. After all the states have been calculated, the $state[m][n]$ is the EDR between two trajectories. If we use slashes to group the states, we notice that the values of states in one slash rely on the value of states in two upper left slashes. For example, in figure \ref{fig:DPstate}, if we want to calculate the states on slash 3, the states on slash 1 and slash 2 are needed. Meanwhile, comparing operations within a slash have no relationship, inspiring us to invoke the calculations within the same slash in parallel, forming the basic idea of our solution.
 
-Based on this framework, we propose a procedure of calculating EDRs in parallel on GPU. Given a set of EDR calculation tasks, we allocate each of them to a block to make GPU full-loading, in order to improve the throughtput. Also high-speed local memory allocated to each block permits us to handle different tasks on different blocks in parallel efficiently. In each block, the values of states are calculated in $(2\times max\{m,n\}+1)$ loops from $state[0][0]$ to $state[m][n]$. In each loop, all the values on a slash are calculated by mass of threads in parallel, with each state is assigned to one or more threads. For example, in figure \ref{fig:DPstate}, state on slash 1 is generated, and then slash 2, slash 3, ..., until the slash $(2m+1)$. 
+Based on this framework, we propose a procedure of calculating EDRs in parallel on GPU, as algorithm \ref{alg:EDR} shows, whose implement is based on CUDA. Given a set of EDR calculation tasks, we first assign each of them to a block to make GPU full-loading, in order to improve the throughtput(line 1-2). In each block, the values of states are calculated in $(2\times max\{m,n\}+1)$ loops from $state[0][0]$ to $state[m][n]$ slash by slash (line 10). For example, in figure \ref{fig:DPstate}, state on slash 1 is generated, and then slash 2, slash 3, ..., until the slash $(2m+1)$. In each loop data on two before slashes are stored in high-speed local memory of each SM, which is allocated before starting loops (line 6), because they will be frequently accessed by threads. Noting that the length of trajectory is almost smaller than 2048, it is enough for space of local memory to store these data. As for the state matrix of this calculation, we store them according to the order of slash, as figure \ref{fig:DPstate} shows. In this case, the data required by threads are nearby, assuring the coalesce accessing pattern.
 
-In each loop, states in two before slashes are stored as shared variables because in CUDA programming model all shared variables will be stored in high speed local memory and calculation of states on slash $i$ is related to states on slash $(i-1)$ and $(i-2)$. In this way all of states accessing transactions required from EDR calculation are from high speed local memory. In addition to this, we find that calculation of $state[i][j]$ needs for $traj_1[i]$ and $traj_2[j]$ and in some loops all of trajectory points are required. Also storing them as shared variables is surely a choice. However, for limited capabacity of local memory, this choice will impact the efficiency of GPU. This is because in GPU architecture, each SM can execute at most 8 blocks therotically at a time but all of shared variables of blocks are needed to be resident in local memory. So abusement of shared variables may limit the number of blocks running on an SM at the same time. For this reason, we choose 
-
-We store states according to the order of slash, as figure \ref{fig:DPstate} shows. In this case, the data required by threads are near by, assuring the coalesce accessing pattern. We can see that the number of steps needed for EDR　calculation reduces from $mn$ to $(2max\{m,n\}+1)$ comparing to not using GPU, and this reduction could be so obvious if trajectory length $m$ or $n$ is large, which is usually an actual situation because the sample interval of location device is short, e.g. 2s.
 
 \begin{figure}[!t]\centering
 	\includegraphics[width=7cm]{pdf/DPstate.pdf}
 	\caption{An example of EDR calculation procedure\label{fig:DPstate}}
 \end{figure}
 
-We propose an CUDA implementation of our strategy dealing with large-scale of EDR calculation from all top-k trajectory queries during a certain time slot. Each set of EDR calculation tasks from a query is handled by a single CUDA kernel. To keep GPU busy all the process, we use stream technology of CUDA to execute multiple kernels corresponding to different queries on GPU at the same time. Before these kernels running, trajectory data are loaded into GPU global memory first. Considering the low transferring speed between memory and GPU, we don't drop these trajectory data immediately after the kernel finishing because it may be reused by other kernels. However, the volume of the GPU global memory is usually so limited that not all trajectory data can be filled into it. To make an tradeoff, we maintain a memory pool on GPU storing trajectory data used by EDR calculation. If the pool is full, we use Least Recently Used (LRU) algorithm to drop some outdated trajectories, because there exists hotspot within queries. For example, trajectories in city center may be required by queries more frequently because the population in city center is denser than rural area. After the kernel finishing, it produce the EDR results for query handler to filter the candidates, as shown in line 9 in algorithm \ref{alg:TSQ_1}. 
+
+In each thread block, based on the data of previous two slashes, all the values on current slash are calculated by mass of threads in parallel by equation (1) mentioned in Section II (line 11-16). After finishing the calculation on current slash i, the states on slash i-2 stored in local memory are flushed into state matrix in global memory, and then states on slash i-1 and i become the new "two last slashes" (line 17-22). The result of EDR calculation of this block can be extracted from state matrix after all loops (line 25). 
+
+We can see that in our solution, the number of steps needed for EDR　calculation reduces from $mn$ to $(2max\{m,n\}+1)$ comparing to not using GPU, and this reduction could be so obvious if trajectory length $m$ or $n$ is large, which is usually an actual situation because the sample interval of location device is short, e.g. 2s.
+
+% In each loop, states in two before slashes are stored as shared variables because in CUDA programming model all shared variables will be stored in high speed local memory and calculation of states on slash $i$ is related to states on slash $(i-1)$ and $(i-2)$. In this way all of states accessing transactions required from EDR calculation are from high speed local memory. In addition to this, we find that calculation of $state[i][j]$ needs for $traj_1[i]$ and $traj_2[j]$ and in some loops all of trajectory points are required. Also storing them as shared variables is surely a choice. However, for limited capabacity of local memory, this choice will impact the efficiency of GPU. This is because in GPU architecture, each SM can execute at most 8 blocks therotically at a time but all of shared variables of blocks are needed to be resident in local memory. So abusement of shared variables may limit the number of blocks running on an SM at the same time. For this reason, we choose 
+
+\begin{algorithm}[htb]
+	\caption{Parallel EDR Calculation}
+	\label{alg:EDR}
+	\begin{algorithmic}[1]
+		\REQUIRE ~~\\
+		Two sets of trajectories: $T1,T2$
+		
+		Threshold of EDR: $\epsilon$
+		
+		Parallel parameters: $blockNum$, $threadNum$
+		\ENSURE ~~\\
+		all EDR distance between trajectories in two sets: $EDR(t_{1},t_{2})$, $\forall (t_{1},t_{2})\in T1\times T2$
+		
+		\STATE assign each $(t_1,t_2)$ pair to a thread block
+		\STATE initial an array to store results of all pairs assigned: $result[blockNum]$
+		\FOR{each block $bID$ \textbf{parallelly}}
+			\STATE initial a matrix in global memory to store all states: $state[len(t_1)+1][len(t_2)+1]$
+			\STATE $maxLength \leftarrow max(len(t_1),len(t_2))$
+			\STATE initial a matrix in local memory to store states in last two slashes: $lastTwoSlash[2][maxLength+1]$
+			\STATE $lastTwoSlash[0][0]=0$
+			\STATE $slashNum \leftarrow len(t_1)+len(t_2)-1$
+			\STATE $loopPerThread \leftarrow \lceil maxLength/threadNum\rceil$
+			\FOR{each slash $i$, $i\in [1,slashNum]$}
+				\FOR{each thread $tID$ \textbf{parallelly}}
+					\STATE initial an array in GPU SM's register to store states calculated: $tempState[loopPerThread]$
+					\FOR{each loop $j$, $j\in [0,loopPerThread-1]$}
+						\STATE update $tempState[j*threadNum+tID]$ using states on last two slashes
+					\ENDFOR
+				\ENDFOR
+				\FOR{each thread $tID$ \textbf{parallelly}}
+					\FOR{each loop $j$, $j\in [0,loopPerThread-1]$}
+						\STATE flush $lastTwoSlash[0][j*threadNum+tID]$ to $state$ in corresponding position
+						\STATE $lastTwoSlash[0][j*threadNum+tID]\leftarrow lastTwoSlash[1][j*threadNum+tID]$
+						\STATE update $lastTwoSlash[1][j*threadNum+tID]$ using $tempState[j]$
+					\ENDFOR
+				\ENDFOR
+			\ENDFOR
+			\STATE $result[bID]\leftarrow state[len(t_1)][len(t_2)]$
+		\ENDFOR
+	\end{algorithmic}
+\end{algorithm}
 
 
-
+%% 这部分是多个kernel并行，可以实现出来试试，然后加上多GPU？？？？
+%% 这部分是多个kernel并行，可以实现出来试试，然后加上多GPU？？？？
+%% 这部分是多个kernel并行，可以实现出来试试，然后加上多GPU？？？？
+% We propose a CUDA implementation of our strategy dealing with large-scale of EDR calculation from all top-k trajectory queries during a certain time slot. Each set of EDR calculation tasks from a query is handled by a single CUDA kernel. To keep GPU busy all the process, we use stream technology of CUDA to execute multiple kernels corresponding to different queries on GPU at the same time. Before these kernels running, trajectory data are loaded into GPU global memory first. Considering the low transferring speed between memory and GPU, we don't drop these trajectory data immediately after the kernel finishing because it may be reused by other kernels. However, the volume of the GPU global memory is usually so limited that not all trajectory data can be filled into it. To make an tradeoff, we maintain a memory pool on GPU storing trajectory data used by EDR calculation. If the pool is full, we use Least Recently Used (LRU) algorithm to drop some outdated trajectories, because there exists hotspot within queries. For example, trajectories in city center may be required by queries more frequently because the population in city center is denser than rural area. After the kernel finishing, it produce the EDR results for query handler to filter the candidates, as shown in line 9 in algorithm \ref{alg:TSQ_1}. 
 
 
 \section{Evaluation}
