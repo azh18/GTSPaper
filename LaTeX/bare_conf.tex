@@ -356,7 +356,7 @@
 %
 % paper title
 % can use linebreaks \\ within to get better formatting as desired
-\title{GTS: A GPU-accelerated Trajectory Storage System Supporting Multiple Spatial Queries}
+\title{GTS: An In-memory GPU-accelerated Trajectory Storage System For Basic Spatial Queries}
 
 
 % author names and affiliations
@@ -683,7 +683,7 @@ Similar to the most of related work, we consider the combination of two levels o
 
 First, we filter sample points not within query ranges quickly through GT-quadtree. In this step, we first extract query's ID and their query ranges. Then, nodes in GT-quadtree whose cells are overlapped by the ranges of queries are retrieved and noted as candidate nodes, forming a mass of $\langle node, query\rangle $ pairs. It can be easily seen each candidate node should indeed be refined, for there exists at least one cell in it may include sample points within the result of range query. To prepare for the refine phase executed by GPU cores, the trajectory data within retrieved node are needed to be in GPU global memory. It is low efficient if duplicated data are transfered from host to GPU global memory, so we maintain a table recording the nodes whose data remain in GPU global memory and its corresponding pointer. Based on this technique, we first check whether the data of node are in GPU global memory. Only if neccessary, we transfer data of this node to GPU, otherwise the pointers of data are directly used to locate the required data. It is worth noting that CPU continue traversing the GT-quadtree simultaneously when transfering data, which can hide the latency caused by low-speed PCI to some extent. 
 
-At the second step, we refine the candidates on GPU in parallel and get the final results. Each thread block is assigned with a $\langle node, query\rangle $ pair, finding out sample points in node within query's range. In each thread block, to guarantee coalesce accessing, sample points are verified in loops. As mentioned in GT-quadtree, sample points of the same node are stored continuously in global memory. For this reason, we propose an strategy that one thread looks for one point in each loop and output whether it is within range according to thread ID until all points within the node are verified. In this strategy memory request of the threads are nearby, leading to coalesce accessing. For example, in the first loop, thread 0 handles point 0, thread 1 handles point 1, ..., and so on. In addition, reminding that each node in GT-quadtree contains sample points no more than $vol_{max}$, the load balance is achieved in this step.
+At the second step, we refine the candidates on GPU in parallel and get the final results. Each thread block is assigned with a $\langle node, query\rangle $ pair, finding out sample points in node within query's range. In each thread block, to guarantee coalesce accessing, sample points are verified in loops. As mentioned in GT-quadtree, sample points of the same node are stored continuously in global memory. For this reason, we propose an strategy that one thread looks for one point in each loop and output whether it is within range according to thread ID until all points within the node are verified. In this strategy memory request of the threads are nearby, leading to coalesce accessing. For example, in the first loop, thread 0 handles point 0, thread 1 handles point 1, ..., and so on. In addition, reminding that each node in GT-quadtree contains sample points no more than $vol_{max}$, the load balance is achieved in this step. Refinement procedure on multiple GPUs is similar, so we will not introduce it detailly because of the space limitation.
 
 
 \subsection{Top-k Similarity Query}
@@ -825,10 +825,10 @@ We can see that in our solution, the number of steps needed for EDR　calculatio
 %% 这部分是多个kernel并行，可以实现出来试试，然后加上多GPU？？？？
 %% 这部分是多个kernel并行，可以实现出来试试，然后加上多GPU？？？？
 %% 这部分是多个kernel并行，可以实现出来试试，然后加上多GPU？？？？
-% We propose a CUDA implementation of our strategy dealing with large-scale of EDR calculation from all top-k trajectory queries during a certain time slot. Each set of EDR calculation tasks from a query is handled by a single CUDA kernel. To keep GPU busy all the process, we use stream technology of CUDA to execute multiple kernels corresponding to different queries on GPU at the same time. Before these kernels running, trajectory data are loaded into GPU global memory first. Considering the low transferring speed between memory and GPU, we don't drop these trajectory data immediately after the kernel finishing because it may be reused by other kernels. However, the volume of the GPU global memory is usually so limited that not all trajectory data can be filled into it. To make an tradeoff, we maintain a memory pool on GPU storing trajectory data used by EDR calculation. If the pool is full, we use Least Recently Used (LRU) algorithm to drop some outdated trajectories, because there exists hotspot within queries. For example, trajectories in city center may be required by queries more frequently because the population in city center is denser than rural area. After the kernel finishing, it produce the EDR results for query handler to filter the candidates, as shown in line 9 in algorithm \ref{alg:TSQ_1}. 
+We propose a multi-GPU implementation of our strategy dealing with large-scale of EDR calculation from all top-k trajectory queries by dividing the set of EDR calculation tasks into several equal size part, to achieve a load balancing and maximum usage of multiple GPUs. Before running these tasks, we use an independent memory allocated table (MAT) to store trajectory data when they are loaded into GPU global memory first, because in this way if a trajectory has been loaded into global memory, by looking for MAT we can avoid the duplicated low-speed data transfering between memory and GPU. However, the volume of the GPU global memory is usually so limited that not all trajectory data can be filled into it. To make an tradeoff, we maintain a memory pool and integrate it to MAT. If the pool is full, we use Least Recently Used (LRU) algorithm to drop some outdated trajectories. This strategy is efficient in real life because there exists hotspot within queries. For example, trajectories in city center may be required by queries more frequently because the population in city center is denser than rural area. After the kernel finishing, EDR calculation results from different GPUs are collected and query engine then filters the candidates, as shown in line 9 in algorithm \ref{alg:TSQ_1}. 
 
 
-\section{Evaluation}
+\section{Experiment}
 In this section, we conduct a multiview experiment based on two real trajectory datasets to verify the performance of GTS. We first introduce the experimental environment, then evaluate the efficiency and scalability of index, and compare the performance of two kinds of queries with baseline and state-of-the-art works at last.
  
 \subsection{Environment}
@@ -897,24 +897,52 @@ We run all the experiments on a server equipped with ten-core Xeon E5-2650 v3 pr
 
 \subsection{Memory Efficiency}
 to show the memory consumption of our solution is not too larger than state-of-the-art methods.
+(1 table)
 
 
 \subsection{Scalability}
-\subsubsection{Range Query}
-\subsubsection{Top-k similarity Query}
+Show how query latency changes as the number of GPU goes from 1 to 2 (use the GPU of DDST). And the number of cores used can not be controlled in CUDA. 
+\subsubsection{Range Query}$  $
+
+(figure 1): different GPU num
+
+\subsubsection{Top-k similarity Query}$  $
+
+(figure 2): different GPU num
 
 \subsection{Query Latency}
 
-Compare with state-of-art method including TrajStore, SharkDB(Non-GPU method), ST2I+consistent storage(GPU method, intuitive approach, use s-t index to implement trajectory index) 
-show that our system is more accurate than TKSimGPU(GPU method)
+Compare with state-of-art methods including STIG and WOZ for range query.
+
+Compare with baseline methods including multi-core CPU implementation of range query and top-k similarity query.
+
+TKSimGPU use a simpler similarity defination method, so we don't consider it in our experiment. 
 
 \subsubsection{Range Query}
+$  $
+
+(figure 3): different $L_{cell}$
+
+(figure 4): different $M_{cell}$
+
+(figure 5): different $S_{RQ}$ (selectivity)
+
+(figure 6): different $N_Q$ (workload)
+
+(figure 7)：different dataset size
 
 \subsubsection{Top-k similarity Query}
+$  $
 
+(figure 8): different $L_{cell}$
 
+(figure 9): different $\epsilon$
 
+(figure 10): different $k$ 
 
+(figure 11): different $N_{Q}$ (workload)
+
+(figure 12): different dataset size
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
