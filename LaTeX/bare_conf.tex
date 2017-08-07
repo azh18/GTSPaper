@@ -446,56 +446,61 @@ As the development of smart devices equipped with GPS, here comes a large amount
 
 \section{Introduction}
 % no \IEEEPARstart
-\textbf{1.background}
+	\textbf{background}
 	
-	As the number of mobile location devices (like smartphones, cars, public bicycles, etc.) grows, increasing amount of spatial-temporal sequential data, i.e. trajectory data are collected from the every corner of the world. For example, 80GB trajectory data are generated during July 1, 2013 and April 30, 2014 just from xxx cars in Shanghai, which contains more than xxx sample points. There are many interesting and valuable information in these data to be exploited, such as route planing[...], traffic prediction[...], travel time prediction\cite{DBLP:conf/gis/LeeSCC12} etc..  This calls for a solution of efficient trajectory storage and retrieval. Recent years various kinds of spatial indexes and in-memory storage are proposed to increase throughput and decrease latency. Meanwhile, having witnessed the growing application of GPU in large-scale data processing, it is a popular choice that use GPU to answer mass of queries in parallel\cite{7498315}[...]. 
+	As the number of mobile location devices (like smartphones, cars, public bicycles, etc.) grows, increasing amount of spatial-temporal sequential data, i.e. trajectory data is collected from the every corner of the world. For example, 80GB trajectory data are generated during July 1, 2013 and April 30, 2014 just from private cars in Shanghai, which contains more than 247,494,133 sample points. There are many interesting and valuable information in these data to be exploited, such as route planing[...], traffic prediction[...], travel time prediction\cite{DBLP:conf/gis/LeeSCC12} etc.. Thousands of queries are produced everyday in these applications. They call for a solution of efficient trajectory storage and retrieval. Recent years various kinds of spatial indexes and in-memory storage are proposed to increase throughput and decrease latency. Meanwhile, having witnessed the growing application of GPU in large-scale data processing, it is a popular choice that use it to answer mass of queries in parallel\cite{7498315}[...]. As a many-core architecture processor, GPU can achieve high throughtput by handling thousands of threads at a time.
 	
-	(picture of two kinds of query)
+	\textbf{problem description}
+	
+	Although a mass of query algorithm are designed for different purposes recently, they can be concluded in two main types: range-based query and trajectory-based query, which can be represented by two basic type of spatial queries: range query and top-k trajectory similarity query respectively.\cite{DBLP:journals/tist/Zheng15} This two kinds of query are both indispensable for many kinds of trajectory applications. For example, they are both invoked in the process of travel time prediction\cite{DBLP:conf/gis/LeeSCC12}. In this situation, query delay is significantly important for user's experience. So, it is valuable to develope a trajectory storage system which can make use of GPU to efficiently execute those different kinds of queries in a short response time. However, existing trajectory storage systems are almost optimized for specific kind of query on CPU, causing that applications invoking different kinds of query lose efficiency when running on them. Also, the index designed for CPU cannot be easily migrated to GPU because of the significantly different architecture. It is not wise to trivially add an additional query module to support the queries not included in their original optimization consideration because of the low pruning performance caused by mismatching index not optimized for this kind of query. 
+	% we lack a trajectory database which can handle all three kinds of queries. 
+	
+		(picture of two kinds of query)
 	%交代随着智能定位设备数量的增长，轨迹数据规模越来越大，以及设计出了内存数据库和GPU加速的查询……并罗列数据说明
 	
 	
-\textbf{2.problem description}
+\textbf{challenge of solving problem}
 
-	Thousands of queries are produced everyday in these applications. In this situation, query delay is significantly important for user's experience. However, existing trajectory storage systems are almost optimized for specific kind of query, causing that applications invoking different kinds of query lose efficiency when running on them. Although a mass of query algorithm are designed for different purposes recently, they can be concluded in two main types: range-based query and trajectory-based query, which can be represented by range query and top-k trajectory similarity query respectively.\cite{DBLP:journals/tist/Zheng15} This two kinds of query are both indispensable for many kinds of trajectory applications. For example, xxx need xxx. It is not wise to trivially add an additional query module to support the queries not included in their original optimization consideration because of the low pruning performance caused by mismatching index not optimized for this kind of query.
-	% we lack a trajectory database which can handle all three kinds of queries. 
-	
-\textbf{3.challenge of solving problem}
 
-	To solve this problem, it is intuitive to set two database for different kind of query respectively. Unfortunately, this will cause unneccessary space comsumption because of duplicate data are stored, which is harmful for memory efficiency. Considering that less space consumption means a mass of benefits for trajectory data mining, such as more trajectories can be persisted in main memory as training set to improve accuracy, it's neccessary to find a space-saving solution.
 	% 要详细展开写嘛？
 	
-\textbf{4.existing work about this problem}
+	However, to implement this idea, there are some main challenges in both storage designing and query algorithm designing.
+	(i) Firstly, it is difficult to design index optimized for both two types of query at the same time. In existing work, people use location-based index which is metric to handle range query, for example, kd-tree. This type of queries allows for the usage of triangle inequality because of its metric property. However, local time shifting based trajectory similarity query, such as \cite{DBLP:conf/sigmod/ChenOO05}, calls for pruning methods which is based on inequation derived from the properties of similarity measurements, which is usually not metric.
+	To solve this problem, it is intuitive to set two database for different kind of query respectively. Unfortunately, this will cause unneccessary space comsumption because of duplicate data are stored, which is harmful for memory efficiency. Considering that less space consumption means a mass of benefits for trajectory data mining, such as more trajectories can be persisted in main memory as training set to improve accuracy, it's neccessary to find a space-saving solution.
+	% 连续存储不是一个问题，因为SharkDB也可以连续存储，根本问题在于是否metric
+	%kNN query and range query need location-based storage such as splitting whole trajectory into sub-trajectories. However, it is integral to read whole trajectory firstly for similarity query, which location-based storage can't support efficiently. One solution is use two independent indices for this three kinds of query, but noting that improving memory efficiency has many benefits for in-memory database(cited by Huanchen Zhang), it's too expensive for in-memory system because of high space consumption. 
+	
+	(ii) Secondly, there is no proper task division strategy used to improve query performance for some queries oriented to data-level parallelization device such as GPU. We will take EDR, a local time shifting based similarity measurements, as an example. For some simpler similarity measurements such as Hasdoff distance\cite{DBLP:conf/bigdataconf/LealGZY15}, parallelization of similarity query algorithm is easily implemented by dividing whole trajectory into segments first and then assigning each segment to a thread to handle.\cite{DBLP:conf/bigdataconf/LealGZY15} However, different from this, calculation of EDR is correlated with all points of trajectory, which means a global optimal alignment, disallowing the division of the trajectory in the process of computation. 
+	
+	(iii) Thirdly, because of the architecture limits of GPU, there are many issues should be concerned when designing data layout method and index\cite{7498315}. For example, memory accessing pattern is a main concern when designing algorithm oriented to GPU, which require us to coalesce the locations of data requests from a warp of threads to a continuous space in global memory of GPU to avoid the high latency when thousands of cores access memory. Sometimes an efficient index working on CPU may disallow this requirement, so it should be specially re-designed if we want to make it work efficiently on GPU.
+	
+	% in traditional tree-based trajectory index such as R-tree, pruning is implemented by search every node recursively. However, recursive operation is not efficiently support by GPU because of different architecture from CPU. This claims that we should 
+	
+	(I'm finding more challenge...)
+	%	ii.
+	%	
+	%	iii.There are lots of barriers when using GPU to handle queries parallel such as low speed of PCI-Express between host memory and GPU. \textbf{It's impratical to store all data in GPU memory which is so small, so this gap between host memory to GPU can be a bottleneck of system.}
+	%	
+	%	iv.It is easy to develop index and data structure aiming at one given kind of query, but difficult when aiming at three kinds of query. Storing multiple indices for each kind of query may solve this problem but make it consume a large portion of main memory.
+	
+	
+\textbf{existing work about this problem}
 	% (先把问题全部列出来，看哪些能解决再最后写上)
 	
 	i.SharkDB propose a column-based data structure to store trajectory data leverageing the time-aggregation of queries. But it can't support trajectory-based query, such as trajectory similarity query because column-based storage makes it hard to access the whole trajectory sequence fastly, which is an important step in similarity query. Besides, the parallel query algorithm that SharkDB develope is only for thread pool, which can't easily migrate to GPU.
 	
 	ii.TKSimGPU propose a query algorithm that implemented on GPU which is designed for trajectory similarity query. However, the similarity measurement which TKSimGPU use is outdated, because it doesn't take local time shifting into concern, which has been proved a significant issue for similarity measurement of trajectory(cited by DTW,EDR,...). Moreover, range query is not supported efficiently by TKSimGPU because of non-adaptive grid.
 	
-\textbf{5.my idea}
+\textbf{my idea}
 	
 	%i.
 	In this work, to solve this problem, we design and implement the GTS (\underline{G}PU-accelerated \underline{T}rajectory \underline{S}torage) system, which can handle both range query and local time shifting based top-k similarity query on historical trajectory data. Recent years many similarity measurements based on local time shifting are proposed and be verificated outperforming traditional Euclidean distance based measurements[][]. So it is important for trajectory storage system to support this kind of query. We design a single storage component supporting pruning on both two kinds of query with no duplicated data, to save memory space. Moreover, our design is friendly with GPU, which means we can make use of parallel power of it to accelerate query engine. It is worth mentioning that we are the first one to design top-k similarity query algorithm for GPU supporting local time shifting. 
 	
 	%For different kinds of query, we try to develope uniform index through analysing the features of reading trajectory samples under corresponding query. For example, it is worth to note that the most state-of-the-art similarity measurement between different trajectories,such as DTW,LCSS and EDR, are based on dynamic programming. This observation inspires us to use data structure which is friendly when accessing the whole trajectory. 
 	
-\textbf{6.challenge of idea}
+
 	
-	However, to implement this idea, there are some main challenges in both storage designing and query algorithm designing. (i) Firstly, it is difficult to design index optimized for both two types of query at the same time. In existing work, people use location-based index which is metric to handle range query, for example, kd-tree. However, local time shifting based trajectory similarity query, such as \cite{DBLP:conf/sigmod/ChenOO05}, calls for pruning methods which is based on inequation derived from the properties of similarity measurements, which is usually not metric.
-	% 连续存储不是一个问题，因为SharkDB也可以连续存储，根本问题在于是否metric
-	%kNN query and range query need location-based storage such as splitting whole trajectory into sub-trajectories. However, it is integral to read whole trajectory firstly for similarity query, which location-based storage can't support efficiently. One solution is use two independent indices for this three kinds of query, but noting that improving memory efficiency has many benefits for in-memory database(cited by Huanchen Zhang), it's too expensive for in-memory system because of high space consumption. 
-	
-	(ii) Secondly, many issues should be concerned to improve performance when accelerating the queries with the help of GPU. For example, local time shifting based similarity measurements, such as EDR, are not trivial to be transplanted into GPU. For traditional similarity query, parallelization of query algorithm is easy by dividing whole trajectory into segments first and then assigning each segment to a thread to handle. However, different from this, calculation of EDR is correlated with all points of trajectory, which means a global optimal alignment, making the fine-grain parallelization more difficult. Apart from this, the memory accessing pattern in the process of EDR is discrete when maintaining state matrix. This wastes the bandwidth of GPU's global memory and thus hurts the query performance. 
-	
-	% in traditional tree-based trajectory index such as R-tree, pruning is implemented by search every node recursively. However, recursive operation is not efficiently support by GPU because of different architecture from CPU. This claims that we should 
-	
-	(I'm finding more challenge...)
-%	ii.
-%	
-%	iii.There are lots of barriers when using GPU to handle queries parallel such as low speed of PCI-Express between host memory and GPU. \textbf{It's impratical to store all data in GPU memory which is so small, so this gap between host memory to GPU can be a bottleneck of system.}
-%	
-%	iv.It is easy to develop index and data structure aiming at one given kind of query, but difficult when aiming at three kinds of query. Storing multiple indices for each kind of query may solve this problem but make it consume a large portion of main memory.
-	
-\textbf{7.main issues}
+\textbf{main solutions}
 
 	i. To address the challenge (i), we propose a novel trajectory storage component based on quadtree. We find that data structures used in pruning process of EDR is similar with grid, which has been widely used as index for GPU-accelerated range query. On the basic of this observation, we subtly adopt the characters of Morton encoding and PR-quadtree to design an index supporting pruning both on range query and top-k similarity query.
 	%i.
@@ -509,7 +514,7 @@ As the development of smart devices equipped with GPS, here comes a large amount
 %	
 %	iv.For different kinds of query, we try to develope uniform index through analysing the features of reading trajectory samples under corresponding query. For example, it is worth to note that the most state-of-the-art similarity measurement between different trajectories,such as DTW,LCSS and EDR, are based on dynamic programming. By the time, range query and kNN query .This observation inspires us to use data structure which is friendly when accessing the whole trajectory. 
 	
-\textbf{8.contributions}
+\textbf{contributions}
 
 \begin{itemize}
 	\item We propose a GPU-accelerated in-memory trajectory storage system which support both range query and local time shifting based top-k similarity query on a single index.
@@ -518,7 +523,7 @@ As the development of smart devices equipped with GPS, here comes a large amount
 	\item We implement our system on server, evaluate the performance, and prove that our system get 4x speedup for top-k similarity comparing to baseline, and meanwhile, get similar performance on range query comparing to state-of-the-art systems not originally supporting local time shifting based top-k similarity query, with similar memory consumption.
 \end{itemize}
 	 
-\textbf{9.organization}
+\textbf{organization}
 
 	The rest of paper is organized as follows. In Section 2 we review the related work. After that, in section 3 we briefly introduce the architecture of our system. We propose our design of storage component in section 4. Query engine is described in detail in section 5 with three kinds of query algorithm. In section 6, we do an evaluation of our system and results are reported. Section 7 concludes the paper. 
 

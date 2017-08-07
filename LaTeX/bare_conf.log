@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/W32TeX) (preloaded format=pdflatex 2016.12.30)  3 AUG 2017 14:50
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/W32TeX) (preloaded format=pdflatex 2016.12.30)  7 AUG 2017 10:43
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -363,80 +363,83 @@ Package grfext Info: Graphics extension search list:
 (f:/TexLive/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
-))
-LaTeX Font Info:    Try loading font information for U+msa on input line 477.
+)) [1{f:/TexLive/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
+
+
+]
+LaTeX Font Info:    Try loading font information for U+msa on input line 497.
 
 (f:/TexLive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 477.
+LaTeX Font Info:    Try loading font information for U+msb on input line 497.
 
 (f:/TexLive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) [1{f:/TexLive/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
-
-
-]
+)
 \c@define=\count123
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--537
+Underfull \hbox (badness 10000) in paragraph at lines 541--542
 []\OT1/ptm/m/n/10 A sam-ple point
  []
 
 [2]
-Underfull \hbox (badness 6542) in paragraph at lines 558--559
+Underfull \hbox (badness 6542) in paragraph at lines 563--564
 []\OT1/ptm/m/n/10 Given two tra-jec-to-ries
  []
 
-<pdf/architecture1.pdf, id=19, 1701.7487pt x 725.7705pt>
+<pdf/architecture1.pdf, id=16, 1701.7487pt x 725.7705pt>
 File: pdf/architecture1.pdf Graphic file (type pdf)
 
 <use pdf/architecture1.pdf>
-Package pdftex.def Info: pdf/architecture1.pdf used on input line 586.
+Package pdftex.def Info: pdf/architecture1.pdf used on input line 591.
 (pdftex.def)             Requested size: 455.24408pt x 194.15553pt.
  [3]
 <pdf/Histo.pdf, id=25, 730.71707pt x 186.12637pt>
 File: pdf/Histo.pdf Graphic file (type pdf)
  <use pdf/Histo.pdf>
-Package pdftex.def Info: pdf/Histo.pdf used on input line 621.
+Package pdftex.def Info: pdf/Histo.pdf used on input line 626.
 (pdftex.def)             Requested size: 247.53888pt x 63.05208pt.
- [4 <./pdf/architecture1.pdf> <./pdf/Histo.pdf
 
-pdfTeX warning: pdflatex.exe (file ./pdf/Histo.pdf): PDF inclusion: multiple pd
-fs with page group included in a single page
->]
+Underfull \vbox (badness 3189) has occurred while \output is active []
+
+ [4 <./pdf/architecture1.pdf>]
 
 pdfTeX warning: pdflatex.exe (file ./pdf/GTTree1.pdf): PDF inclusion: found PDF
  version <1.6>, but at most version <1.5> allowed
-<pdf/GTTree1.pdf, id=54, 178.54333pt x 179.92117pt>
+<pdf/GTTree1.pdf, id=44, 178.54333pt x 179.92117pt>
 File: pdf/GTTree1.pdf Graphic file (type pdf)
  <use pdf/GTTree1.pdf>
-Package pdftex.def Info: pdf/GTTree1.pdf used on input line 641.
+Package pdftex.def Info: pdf/GTTree1.pdf used on input line 646.
 (pdftex.def)             Requested size: 65.04256pt x 65.54576pt.
 
 
 pdfTeX warning: pdflatex.exe (file ./pdf/GTTree2.pdf): PDF inclusion: found PDF
  version <1.6>, but at most version <1.5> allowed
-<pdf/GTTree2.pdf, id=55, 177.16388pt x 177.16489pt>
+<pdf/GTTree2.pdf, id=45, 177.16388pt x 177.16489pt>
 File: pdf/GTTree2.pdf Graphic file (type pdf)
  <use pdf/GTTree2.pdf>
-Package pdftex.def Info: pdf/GTTree2.pdf used on input line 646.
+Package pdftex.def Info: pdf/GTTree2.pdf used on input line 651.
 (pdftex.def)             Requested size: 65.04256pt x 65.04445pt.
 
 
 pdfTeX warning: pdflatex.exe (file ./pdf/GTTree3.pdf): PDF inclusion: found PDF
  version <1.6>, but at most version <1.5> allowed
-<pdf/GTTree3.pdf, id=56, 176.47531pt x 178.54305pt>
+<pdf/GTTree3.pdf, id=46, 176.47531pt x 178.54305pt>
 File: pdf/GTTree3.pdf Graphic file (type pdf)
  <use pdf/GTTree3.pdf>
-Package pdftex.def Info: pdf/GTTree3.pdf used on input line 651.
+Package pdftex.def Info: pdf/GTTree3.pdf used on input line 656.
 (pdftex.def)             Requested size: 65.04256pt x 65.80652pt.
 
-Underfull \hbox (badness 2809) in paragraph at lines 666--667
+Underfull \hbox (badness 2809) in paragraph at lines 671--672
 []\OT1/ptm/m/n/10 After that, we split the in-put tra-jec-to-ries into sub-
  []
 
-[5 <./pdf/GTTree1.pdf> <./pdf/GTTree2.pdf
+[5 <./pdf/Histo.pdf> <./pdf/GTTree1.pdf
+
+pdfTeX warning: pdflatex.exe (file ./pdf/GTTree1.pdf): PDF inclusion: multiple 
+pdfs with page group included in a single page
+> <./pdf/GTTree2.pdf
 
 pdfTeX warning: pdflatex.exe (file ./pdf/GTTree2.pdf): PDF inclusion: multiple 
 pdfs with page group included in a single page
@@ -445,29 +448,34 @@ pdfs with page group included in a single page
 pdfTeX warning: pdflatex.exe (file ./pdf/GTTree3.pdf): PDF inclusion: multiple 
 pdfs with page group included in a single page
 >] [6]
-Underfull \hbox (badness 10000) in paragraph at lines 733--734
+Underfull \hbox (badness 10000) in paragraph at lines 738--739
 []\OT1/ptm/m/n/10 Frequency Vec-tor of query tra-jec-tory $\OML/cmm/m/it/10 qFV
  \OT1/cmr/m/n/10 =
  []
 
+
+Underfull \vbox (badness 5359) has occurred while \output is active []
+
+ [7]
 Missing character: There is no ã in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
-[7] <pdf/DPstate.pdf, id=86, 480.8635pt x 391.17664pt>
+
+<pdf/DPstate.pdf, id=86, 480.8635pt x 391.17664pt>
 File: pdf/DPstate.pdf Graphic file (type pdf)
  <use pdf/DPstate.pdf>
-Package pdftex.def Info: pdf/DPstate.pdf used on input line 771.
+Package pdftex.def Info: pdf/DPstate.pdf used on input line 776.
 (pdftex.def)             Requested size: 199.16928pt x 162.01892pt.
 Missing character: There is no ã in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 
-Underfull \hbox (badness 2221) in paragraph at lines 793--794
+Underfull \hbox (badness 2221) in paragraph at lines 798--799
 []\OT1/ptm/m/n/10 all EDR dis-tance be-tween tra-jec-to-ries in two sets:
  []
 
 [8 <./pdf/DPstate.pdf, page is rotated 90 degrees>]
-Overfull \hbox (0.9026pt too wide) in paragraph at lines 857--876
+Overfull \hbox (0.9026pt too wide) in paragraph at lines 862--881
  [][] 
  []
 
@@ -475,7 +483,7 @@ Overfull \hbox (0.9026pt too wide) in paragraph at lines 857--876
 Missing character: There is no ï in font ptmr7t!
 Missing character: There is no ¼ in font ptmr7t!
 Missing character: There is no š in font ptmr7t!
- (./bare_conf.bbl)
+ (./bare_conf.bbl [10])
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -487,32 +495,33 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[10] (./bare_conf.aux) ) 
+[11
+
+] (./bare_conf.aux) ) 
 Here is how much of TeX's memory you used:
- 4070 strings out of 493013
- 56985 string characters out of 6139287
- 131796 words of memory out of 5000000
- 7518 multiletter control sequences out of 15000+600000
+ 4071 strings out of 493013
+ 57018 string characters out of 6139287
+ 133799 words of memory out of 5000000
+ 7519 multiletter control sequences out of 15000+600000
  42880 words of font info for 87 fonts, out of 8000000 for 9000
  1144 hyphenation exceptions out of 8191
  40i,14n,26p,1718b,593s stack positions out of 5000i,500n,10000p,200000b,80000s
-{f:/TexLive/texmf-dist/fonts/enc/dvips/base/8r.enc}<f:/
-TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><f:/TexLive/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><f:/TexLive/texmf-dist/fonts/typ
-e1/public/amsfonts/cm/cmmi6.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfo
-nts/cm/cmmi7.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pf
-b><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><f:/TexLive/t
-exmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><f:/TexLive/texmf-dist/fonts/
-type1/public/amsfonts/cm/cmsy10.pfb><f:/TexLive/texmf-dist/fonts/type1/public/a
-msfonts/cm/cmsy7.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/symbols
-/msam10.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb><f:/TexLive
-/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb><f:/TexLive/texmf-dist/fonts/type
-1/urw/times/utmr8a.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb
->
-Output written on bare_conf.pdf (10 pages, 315133 bytes).
+{f:/TexLive/texmf-dist/fonts/enc/dvips/base/8r.enc}<f:/Tex
+Live/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><f:/TexLive/texmf-dis
+t/fonts/type1/public/amsfonts/cm/cmmi10.pfb><f:/TexLive/texmf-dist/fonts/type1/
+public/amsfonts/cm/cmmi6.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts
+/cm/cmmi7.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><
+f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><f:/TexLive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><f:/TexLive/texmf-dist/fonts/typ
+e1/public/amsfonts/cm/cmsy10.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmsy7.pfb><f:/TexLive/texmf-dist/fonts/type1/public/amsfonts/symbols/ms
+am10.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb><f:/TexLive/te
+xmf-dist/fonts/type1/urw/times/utmbi8a.pfb><f:/TexLive/texmf-dist/fonts/type1/u
+rw/times/utmr8a.pfb><f:/TexLive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on bare_conf.pdf (11 pages, 315663 bytes).
 PDF statistics:
- 155 PDF objects out of 1000 (max. 8388607)
- 114 compressed objects within 2 object streams
+ 158 PDF objects out of 1000 (max. 8388607)
+ 116 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  31 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -42,11 +42,25 @@ L.~Chen, M.~T. {\"{O}}zsu, and V.~Oria, ``Robust and fast similarity search for
   moving object trajectories,'' in \emph{{SIGMOD} Conference}.\hskip 1em plus
   0.5em minus 0.4em\relax {ACM}, 2005, pp. 491--502.
 
+\bibitem{DBLP:conf/bigdataconf/LealGZY15}
+\BIBentryALTinterwordspacing
+E.~Leal, L.~Gruenwald, J.~Zhang, and S.~You, ``Tksimgpu: {A} parallel top-k
+  trajectory similarity query processing algorithm for gpgpus,'' in \emph{2015
+  {IEEE} International Conference on Big Data, Big Data 2015, Santa Clara, CA,
+  USA, October 29 - November 1, 2015}, 2015, pp. 461--469. [Online]. Available:
+  \url{https://doi.org/10.1109/BigData.2015.7363787}
+\BIBentrySTDinterwordspacing
+
 \bibitem{DBLP:conf/gis/LettichOS15}
 F.~Lettich, S.~Orlando, and C.~Silvestri, ``Processing streams of spatial k-nn
   queries and position updates on manycore gpus,'' in
   \emph{{SIGSPATIAL/GIS}}.\hskip 1em plus 0.5em minus 0.4em\relax {ACM}, 2015,
   pp. 26:1--26:10.
+
+\bibitem{GPUTaxi}
+J.~Zhang, S.~You, and L.~Gruenwald, ``High-performance spatial query processing
+  on big taxi trip data using gpgpus,'' in \emph{2014 IEEE International
+  Congress on Big Data}, 2014, Conference Proceedings, pp. 72--79.
 
 \bibitem{EDWP15}
 S.~Ranu, P.~Deepak, A.~D. Telang, P.~Deshpande, and S.~Raghavan, ``Indexing and
@@ -62,10 +76,5 @@ M.~Vlachos, D.~Gunopulos, and G.~Kollios, ``Discovering similar
   - March 1, 2002}, 2002, pp. 673--684. [Online]. Available:
   \url{https://doi.org/10.1109/ICDE.2002.994784}
 \BIBentrySTDinterwordspacing
-
-\bibitem{GPUTaxi}
-J.~Zhang, S.~You, and L.~Gruenwald, ``High-performance spatial query processing
-  on big taxi trip data using gpgpus,'' in \emph{2014 IEEE International
-  Congress on Big Data}, 2014, Conference Proceedings, pp. 72--79.
 
 \end{thebibliography}
