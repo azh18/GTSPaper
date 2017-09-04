@@ -4,27 +4,34 @@
 \citation{DBLP:journals/tist/Zheng15}
 \citation{DBLP:conf/gis/LeeSCC12}
 \citation{DBLP:conf/sigmod/ChenOO05}
-\citation{DBLP:conf/bigdataconf/LealGZY15}
-\citation{DBLP:conf/bigdataconf/LealGZY15}
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}}
+\citation{DBLP:conf/bigdataconf/LealGZY15}
+\citation{DBLP:conf/bigdataconf/LealGZY15}
 \citation{7498315}
-\@writefile{toc}{\contentsline {section}{\numberline {II}Background}{2}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {II-A}}Problem Definition}{2}}
+\citation{7498315}
+\citation{GPUTaxi}
+\citation{DBLP:conf/bigdataconf/LealGZY15}
+\citation{Sayan}
+\citation{DBLP:conf/vldb/ChenN04}
+\citation{DBLP:conf/icde/YiJF98}
+\citation{DBLP:conf/icde/VlachosGK02}
 \citation{DBLP:conf/sigmod/ChenOO05}
+\citation{DBLP:conf/sigmod/ChenOO05}
+\citation{nvidia2014toolkit}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Background}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {II-A}}Problem Definition}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {II-B}}GPU computing using CUDA\cite  {nvidia2014toolkit}}{3}}
+\citation{DBLP:conf/gis/LettichOS15}
 \citation{DBLP:conf/sigmod/ChenOO05}
 \citation{DBLP:conf/gis/LettichOS15}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {II-B}}GPU computing using CUDA[]}{3}}
-\@writefile{toc}{\contentsline {section}{\numberline {III}System Architecture}{3}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {III-A}}Overview}{3}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {III-B}}Storage Component}{3}}
-\citation{DBLP:conf/sigmod/ChenOO05}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces System Architecture}}{4}}
-\newlabel{fig:Archi}{{1}{4}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}System Architecture}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {III-A}}Overview}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {III-B}}Storage Component}{4}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {III-C}}Query Engine}{4}}
 \@writefile{toc}{\contentsline {section}{\numberline {IV}GPU-friendly Storage Component}{4}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {IV-A}}Storage Design}{4}}
-\citation{DBLP:conf/gis/LettichOS15}
-\citation{DBLP:conf/gis/LettichOS15}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces System Architecture}}{5}}
+\newlabel{fig:Archi}{{1}{5}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Example of the trajectory in area (left), the histogram of this trajectory (middle) and the grid that can represent the histogram's value (right)}}{5}}
 \newlabel{FreqGrid}{{2}{5}}
 \newlabel{NodesL1}{{3(a)}{5}}
@@ -38,37 +45,38 @@
 \@writefile{lof}{\contentsline {subfigure}{\numberline{(b)}{\ignorespaces {Morton encoding in level 1 and 2}}}{5}}
 \@writefile{lof}{\contentsline {subfigure}{\numberline{(c)}{\ignorespaces {Morton encoding in grid of GT-quadtree}}}{5}}
 \newlabel{GTQuadtree}{{3}{5}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {IV-B}}Construction}{5}}
+\citation{DBLP:conf/gis/LettichOS15}
 \citation{GPUTaxi}
 \citation{EDWP15}
 \citation{DBLP:conf/icde/VlachosGK02}
 \citation{DBLP:conf/sigmod/ChenOO05}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {IV-B}}Construction}{6}}
 \@writefile{toc}{\contentsline {section}{\numberline {V}GPU-accelerated Query Engine}{6}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {V-A}}Range Query}{6}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {V-B}}Top-k Similarity Query}{6}}
 \citation{DBLP:conf/sigmod/ChenOO05}
+\citation{DBLP:conf/sigmod/ChenOO05}
 \@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Top-k Similarity Query}}{7}}
 \newlabel{alg:TSQ_1}{{1}{7}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces An example of virtual grid with 4 cells and the transformation between IDs in different grids}}{7}}
+\newlabel{fig:VirtualGrid}{{4}{7}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {V-B}1}Lower Bound Generation}{7}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces GenerateLowerBound}}{7}}
-\newlabel{alg:GetLB}{{2}{7}}
+\citation{DBLP:conf/sigmod/ChenOO05}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {V-B}2}Parallel EDR Calculatation}{8}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces An example of EDR calculation procedure}}{8}}
-\newlabel{fig:DPstate}{{4}{8}}
-\@writefile{toc}{\contentsline {section}{\numberline {VI}Experiment}{8}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}}Environment}{8}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}1}Dataset}{8}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces An example of EDR calculation procedure}}{8}}
+\newlabel{fig:DPstate}{{5}{8}}
 \citation{7498315}
 \citation{GPUTaxi}
-\citation{DBLP:conf/sigmod/ChenOO05}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {3}{\ignorespaces Parallel EDR Calculation}}{9}}
-\newlabel{alg:EDR}{{3}{9}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}2}Data Preprocessing}{9}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces Parallel EDR Calculation}}{9}}
+\newlabel{alg:EDR}{{2}{9}}
 \@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Parameters ranges and default values}}{9}}
 \newlabel{table_param}{{I}{9}}
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Experiment}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}}Environment}{9}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}1}Dataset}{9}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}2}Data Preprocessing}{9}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}3}Parameters}{9}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}4}Compared baselines and systems}{9}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}5}Experiment Overview}{9}}
+\citation{DBLP:conf/sigmod/ChenOO05}
 \bibstyle{IEEEtran}
 \bibdata{GTS}
 \bibcite{DBLP:conf/gis/LeeSCC12}{1}
@@ -76,19 +84,29 @@
 \bibcite{DBLP:journals/tist/Zheng15}{3}
 \bibcite{DBLP:conf/sigmod/ChenOO05}{4}
 \bibcite{DBLP:conf/bigdataconf/LealGZY15}{5}
-\bibcite{DBLP:conf/gis/LettichOS15}{6}
-\bibcite{GPUTaxi}{7}
-\bibcite{EDWP15}{8}
-\bibcite{DBLP:conf/icde/VlachosGK02}{9}
+\bibcite{GPUTaxi}{6}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}4}Compared baselines and systems}{10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-A}5}Experiment Overview}{10}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-B}}Memory Efficiency}{10}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-C}}Scalability}{10}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-C}}Query Latency}{10}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-C}1}Range Query}{10}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-C}2}Top-k similarity Query}{10}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-D}}Query Latency}{10}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-D}1}Range Query}{10}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-D}2}Top-k similarity Query}{10}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-D}}Speedup Ratio}{10}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-E}}Scalability}{10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-E}1}Range Query}{10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-E}2}Top-k similarity Query}{10}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VI-F}}Parameters Tuning}{10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-F}1}Range Query}{10}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\unhbox \voidb@x \hbox {VI-F}2}Top-k similarity Query}{10}}
 \@writefile{toc}{\contentsline {section}{\numberline {VII}Related Work}{10}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VII-A}}Trajectory Storage and Indexing}{10}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\unhbox \voidb@x \hbox {VII-B}}GPU-accelerated Storage System}{10}}
 \@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion}{10}}
 \@writefile{toc}{\contentsline {section}{References}{10}}
+\bibcite{Sayan}{7}
+\bibcite{DBLP:conf/vldb/ChenN04}{8}
+\bibcite{DBLP:conf/icde/YiJF98}{9}
+\bibcite{DBLP:conf/icde/VlachosGK02}{10}
+\bibcite{nvidia2014toolkit}{11}
+\bibcite{DBLP:conf/gis/LettichOS15}{12}
+\bibcite{EDWP15}{13}

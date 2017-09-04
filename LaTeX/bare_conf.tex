@@ -362,22 +362,23 @@
 % author names and affiliations
 % use a multiple column layout for up to three different
 % affiliations
-\author{\IEEEauthorblockN{Zhang Bowen}
+\author{\IEEEauthorblockN{Bowen Zhang}
 \IEEEauthorblockA{Department of Computer Science and Engeneering\\
 Shanghai Jiao Tong University\\
 Shanghai, China 200240\\
-Email: zbw0046@sjtu.edu.cn}}
-%\and
-%\IEEEauthorblockN{Homer Simpson}
-%\IEEEauthorblockA{Twentieth Century Fox\\
-%Springfield, USA\\
-%Email: homer@thesimpsons.com}
-%\and
-%\IEEEauthorblockN{James Kirk\\ and Montgomery Scott}
-%\IEEEauthorblockA{Starfleet Academy\\
-%San Francisco, California 96678-2391\\
-%Telephone: (800) 555--1212\\
-%Fax: (888) 555--1212}}
+Email: zbw0046@sjtu.edu.cn}
+\and
+\IEEEauthorblockN{Yanmin Zhu}
+\IEEEauthorblockA{Department of Computer Science and Engeneering\\
+Shanghai Jiao Tong University\\
+Shanghai, China 200240\\
+Email: yzhu@cs.sjtu.edu.cn}
+\and
+\IEEEauthorblockN{Yanyan Shen}
+\IEEEauthorblockA{Department of Computer Science and Engeneering\\
+Shanghai Jiao Tong University\\
+Shanghai, China 200240\\
+Email: shen-yy@cs.sjtu.edu.cn}}
 
 % conference papers do not typically use \thanks and this command
 % is locked out in conference mode. If really needed, such as for
@@ -465,12 +466,12 @@ As the development of smart devices equipped with GPS, here comes a large amount
 	% 要详细展开写嘛？
 	
 	However, to implement this idea, there are some main challenges in both storage designing and query algorithm designing.
-	(i) Firstly, it is difficult to design index optimized for both two types of query at the same time. In existing work, people use location-based index which is metric to handle range query, for example, kd-tree. This type of queries allows for the usage of triangle inequality because of its metric property. However, local time shifting based trajectory similarity query, such as \cite{DBLP:conf/sigmod/ChenOO05}, calls for pruning methods which is based on inequation derived from the properties of similarity measurements, which is usually not metric.
+	(i) Firstly, it is difficult to design index optimized for both two types of query at the same time. In existing work, people use location-based index which is metric to handle range query, for example, kd-tree. This type of queries allows for the usage of triangle inequality because of its metric property. However, global-alignment based trajectory similarity query, such as \cite{DBLP:conf/sigmod/ChenOO05}, calls for pruning methods which is based on inequation derived from the properties of similarity measurements, which is usually not metric.
 	To solve this problem, it is intuitive to set two database for different kind of query respectively. Unfortunately, this will cause unneccessary space comsumption because of duplicate data are stored, which is harmful for memory efficiency. Considering that less space consumption means a mass of benefits for trajectory data mining, such as more trajectories can be persisted in main memory as training set to improve accuracy, it's neccessary to find a space-saving solution.
 	% 连续存储不是一个问题，因为SharkDB也可以连续存储，根本问题在于是否metric
 	%kNN query and range query need location-based storage such as splitting whole trajectory into sub-trajectories. However, it is integral to read whole trajectory firstly for similarity query, which location-based storage can't support efficiently. One solution is use two independent indices for this three kinds of query, but noting that improving memory efficiency has many benefits for in-memory database(cited by Huanchen Zhang), it's too expensive for in-memory system because of high space consumption. 
 	
-	(ii) Secondly, there is no proper task division strategy used to improve query performance for some queries oriented to data-level parallelization device such as GPU. We will take EDR, a local time shifting based similarity measurements, as an example. For some simpler similarity measurements such as Hasdoff distance\cite{DBLP:conf/bigdataconf/LealGZY15}, parallelization of similarity query algorithm is easily implemented by dividing whole trajectory into segments first and then assigning each segment to a thread to handle.\cite{DBLP:conf/bigdataconf/LealGZY15} However, different from this, calculation of EDR is correlated with all points of trajectory, which means a global optimal alignment, disallowing the division of the trajectory in the process of computation. 
+	(ii) Secondly, there is no proper task division strategy used to improve query performance for some queries oriented to data-level parallelization device such as GPU. We will take EDR, a global-alignment based similarity measurements, as an example. For some simpler similarity measurements such as Hausdorff distance\cite{DBLP:conf/bigdataconf/LealGZY15}, parallelization of similarity query algorithm is easily implemented by dividing whole trajectory into segments first and then assigning each segment to a thread to handle.\cite{DBLP:conf/bigdataconf/LealGZY15} However, different from this, calculation of EDR is correlated with all points of trajectory, which means a global optimal alignment, disallowing the division of the trajectory in the process of computation. 
 	
 	(iii) Thirdly, because of the architecture limits of GPU, there are many issues should be concerned when designing data layout method and index\cite{7498315}. For example, memory accessing pattern is a main concern when designing algorithm oriented to GPU, which require us to coalesce the locations of data requests from a warp of threads to a continuous space in global memory of GPU to avoid the high latency when thousands of cores access memory. Sometimes an efficient index working on CPU may disallow this requirement, so it should be specially re-designed if we want to make it work efficiently on GPU.
 	
@@ -487,14 +488,16 @@ As the development of smart devices equipped with GPS, here comes a large amount
 \textbf{existing work about this problem}
 	% (先把问题全部列出来，看哪些能解决再最后写上)
 	
-	i.SharkDB propose a column-based data structure to store trajectory data leverageing the time-aggregation of queries. But it can't support trajectory-based query, such as trajectory similarity query because column-based storage makes it hard to access the whole trajectory sequence fastly, which is an important step in similarity query. Besides, the parallel query algorithm that SharkDB develope is only for thread pool, which can't easily migrate to GPU.
+	% i.SharkDB propose a column-based data structure to store trajectory data leverageing the time-aggregation of queries. But it can't support trajectory-based query, such as trajectory similarity query because column-based storage makes it hard to access the whole trajectory sequence fastly, which is an important step in similarity query. Besides, the parallel query algorithm that SharkDB develope is only for thread pool, which can't easily migrate to GPU.
 	
-	ii.TKSimGPU propose a query algorithm that implemented on GPU which is designed for trajectory similarity query. However, the similarity measurement which TKSimGPU use is outdated, because it doesn't take local time shifting into concern, which has been proved a significant issue for similarity measurement of trajectory(cited by DTW,EDR,...). Moreover, range query is not supported efficiently by TKSimGPU because of non-adaptive grid.
+	i.There are some works about accelerating range queries on high-dimensional data with GPU. STIG\cite{7498315} is an index adapted from traditional kd-tree, which replace point in leaf node with a block consisting a fix number of points to make them able to be checked by GPU in parallel at refine phase of range query. Zhang et.al\cite{GPUTaxi} also propose a platform based on GPU to handle range queries on taxi data, which use adaptive quadtree as its spatial index. However, these two work do not consider the need for similarity query because the focus of them is high-dimensional points rather than trajectories. 
+	
+	ii.TKSimGPU\cite{DBLP:conf/bigdataconf/LealGZY15} proposes a solution of executing similarity query on GPU. It divides the whole spatial space into thousands of cells, and then segments trajectories according to this division. Finally, parallel computation of Hausdorff distance is achieved on the cell level. However, Hausdorff distance, the similarity measurement which TKSimGPU use, is outdated, because it doesn't take local time shifting into concern, which has been proved a significant issue for similarity measurement of trajectory\cite{Sayan} \cite{DBLP:conf/vldb/ChenN04} \cite{DBLP:conf/icde/YiJF98} \cite{DBLP:conf/icde/VlachosGK02}. Moreover, range query is not supported efficiently by TKSimGPU because of non-adaptive grid.
 	
 \textbf{my idea}
 	
 	%i.
-	In this work, to solve this problem, we design and implement the GTS (\underline{G}PU-accelerated \underline{T}rajectory \underline{S}torage) system, which can handle both range query and local time shifting based top-k similarity query on historical trajectory data. Recent years many similarity measurements based on local time shifting are proposed and be verificated outperforming traditional Euclidean distance based measurements[][]. So it is important for trajectory storage system to support this kind of query. We design a single storage component supporting pruning on both two kinds of query with no duplicated data, to save memory space. Moreover, our design is friendly with GPU, which means we can make use of parallel power of it to accelerate query engine. It is worth mentioning that we are the first one to design top-k similarity query algorithm for GPU supporting local time shifting. 
+	In this work, to solve these problems, we design and implement the GTS (\underline{G}PU-accelerated \underline{T}rajectory \underline{S}torage) system, which can handle both range query and global alignment based top-k similarity query on historical trajectory data. We design a single storage component supporting pruning on both two kinds of query with no duplicated data, to save memory space. Moreover, our design is friendly with GPU, which means we can make use of parallel power of it to accelerate query engine. As far as we have known, we are the first one to accelerate top-k similarity query with global alignments by leveraging GPU. 
 	
 	%For different kinds of query, we try to develope uniform index through analysing the features of reading trajectory samples under corresponding query. For example, it is worth to note that the most state-of-the-art similarity measurement between different trajectories,such as DTW,LCSS and EDR, are based on dynamic programming. This observation inspires us to use data structure which is friendly when accessing the whole trajectory. 
 	
@@ -502,10 +505,10 @@ As the development of smart devices equipped with GPS, here comes a large amount
 	
 \textbf{main solutions}
 
-	i. To address the challenge (i), we propose a novel trajectory storage component based on quadtree. We find that data structures used in pruning process of EDR is similar with grid, which has been widely used as index for GPU-accelerated range query. On the basic of this observation, we subtly adopt the characters of Morton encoding and PR-quadtree to design an index supporting pruning both on range query and top-k similarity query.
+	i. To support both two types of queries, we propose a novel trajectory storage component. We find that data structures used in pruning process of EDR is similar with grid, which has been widely used as index for GPU-accelerated range query. On the basic of this observation, we subtly adopt the characters of Morton encoding and PR-quadtree to design an index called GT-quadtree, supporting pruning both on range query and top-k similarity query. In this index the data fetched every time is distributed continuously in memory, so a coalesce access pattern can be achieved conveniently, meaning that this index is GPU-friendly. This index also observes the advantage of quadtree that can be adaptive to different datasets.
 	%i.
 	
-	ii. To address the challenge (ii), we design the query algorithm which is load balancing and has the coalesce accessing pattern to avoid the performance loss caused by improper memory accessing pattern. For top-k similarity search, we leverage the potential independence of the procedure to design a scalable task division strategy considering both coarse-grain and fine-grain parallelism to make full use of GPU's parallel power. Otherwise, we design a special placement organization of elements in state matrix in GPU global memory, satisfying the requirement of coalesce accessing.
+	ii. To make full use of parallelism power of GPU, we design a special query engine supporting two basic kinds of queries. For range query, we migrate the query algorithm used for quadtree index to GT-quadtree, which is load balancing and has the coalesce accessing pattern to avoid the performance loss. For top-k similarity query, we leverage the potential independence of the procedure to design a scalable task division strategy considering both coarse-grain and fine-grain parallelism to make full use of GPU's parallel power. Otherwise, we design a special placement organization of elements in state matrix used in the process of EDR calculation in GPU global memory, which satisfies the requirement of coalesce accessing pattern. We also maintain a buffer table for two types of queries respectively to reduce low-speed data transfering on PCI-E interface, avoiding duplicated data transfering by recording whether trajectory data needed remains in global memory of GPU. 
 	%We use partition-based index to handle range query and kNN query, and use bounds which are derived from similarity query's definition to pruning for similarity query. From this design we can save memory space comparing to widely used tree-based index. Inspried from the phenomenon that GPU has been widely equipped on PC and server, we can use GPU to make up the performance loss caused by absence of tree-based index.
 %	
 %	ii. We use xxx tree to index sample points in each column because this data structure can divide the all points into several parts according to the (location/xxx) features. We can deal with skew data with no performance loss because only a small part(tight) of points are collected as candidate dataset for queries.
@@ -517,10 +520,10 @@ As the development of smart devices equipped with GPS, here comes a large amount
 \textbf{contributions}
 
 \begin{itemize}
-	\item We propose a GPU-accelerated in-memory trajectory storage system which support both range query and local time shifting based top-k similarity query on a single index.
+	\item We propose a GPU-accelerated in-memory trajectory storage system which support both range query and global alignment based top-k similarity query on a single index.
 	\item We design an quadtree integrated trajectory storage component, not only works for GPU-accelerated range query but also exploiting GPU's parallel power in accelerating top-k similarity query.
-	\item We design a novel solution of accelerating local time shifting based similarity query on our storage component by exploiting GPU's parallel power.
-	\item We implement our system on server, evaluate the performance, and prove that our system get 4x speedup for top-k similarity comparing to baseline, and meanwhile, get similar performance on range query comparing to state-of-the-art systems not originally supporting local time shifting based top-k similarity query, with similar memory consumption.
+	\item We design a novel solution of accelerating global alignment based similarity query on our storage component by exploiting GPU's parallel power.
+	\item We implement our system on server, evaluate the performance, and prove that our system get 4x speedup for top-k similarity comparing to baseline, and meanwhile, get similar performance on range query comparing to state-of-the-art systems not originally supporting global alignment based top-k similarity query, with similar memory consumption.
 \end{itemize}
 	 
 \textbf{organization}
@@ -557,7 +560,7 @@ Then we introduce some background knowledge of GPU used in our design.
 	
 	
 	
-	Top-k trajectory similarity query retrieves a set of k trajectories $R_{sim}=\{t_{1},t_{2},\ldots ,t_{k}\}$ which are most similar with given trajectory $t_{q}$. There are many metric about trajectory similarity, and it's widely accepted that EDR distance\cite{DBLP:conf/sigmod/ChenOO05} which can handle local time shifting may be a good choice. So we use EDR distance as our similairity metric.
+	Top-k trajectory similarity query retrieves a set of k trajectories $R_{sim}=\{t_{1},t_{2},\ldots ,t_{k}\}$ which are most similar with given trajectory $t_{q}$. There are many metric about trajectory similarity, and it's widely accepted that EDR distance\cite{DBLP:conf/sigmod/ChenOO05} which can adapt to local time shifting may be a good choice. So we use EDR distance as our similairity metric.
 	
 	\begin{define}[EDR distance\cite{DBLP:conf/sigmod/ChenOO05}]
 		Given two trajectories $t_{1}=\{p_{1},p_{2},\ldots,p_{n1+1}\},t_{2}=\{p_{1},p_{2},\ldots,p_{n2+1}\}$, the EDR distance between them is calculated by:
@@ -577,7 +580,7 @@ Then we introduce some background knowledge of GPU used in our design.
 %	\caption{three kind of query\label{fig:1}}
 %	\end{figure*}
 
-\subsection{GPU computing using CUDA[]}
+\subsection{GPU computing using CUDA\cite{nvidia2014toolkit}}
 We design GTS based on CUDA proposed by Nvidia, a programming framework for GPU computing. In this part we introduce some background of GPU and basic concept in CUDA. GPU follows Single Intruction Multiple Data (SIMD) parallel model, indicating all of the cores in an Stream Microprocessor (SM) executing the same instruction on different data at the same time. There are tens of SMs in one GPU, each of which has tens of cores, forming a two-level parallel architecture. In CUDA, this architecture is reflected in the division of grid, block and thread. When one program, called kernel, is loaded in CUDA, a grid is generated, including mass of blocks. The block contains a fixed number of threads, which runs on an SM of GPU. Threads in the same block can share a high speed but small volume local memory on SM, and threads in different blocks can use a slower GPU global memory to exchange information. This requires us to divide the task properly into different blocks properly. 
 
 There are three main issues when using GPU. First, accessing pattern is a main issue when accessing global memory. When hundreds of threads in one block read/write data from global memory, if the data each thread needs are nearby, GPU will coalesce hundreds of small accessing request to several big continuous accessing transactions. Because GPU has a high bandwidth but high latency global memory, by this coalescing threads can get needed data in a pretty small number of clock cycles. For example, if thread 1,2,..,32 access the data at offset 33,34,...,64 respectively, 32 data loading requests will be combined to one single transition. So if program access data from global memory, it is optimal when data read/writen by all threads in a block are stored continuously, and ensuring an optimal memory access pattern is significant for making full use of GPU. Second, the load balancing makes sure that all cores of GPU are not idle, leading to a high throughtput. It means we should assign almost equal amount of computation on one thread or one block. Third, there is a tradeoff about the layout of large-scale trajectory data. The capability of GPU global memory is limit, for example, 12GB in most of ultimate level GPU devices. So we may think about store all data in host memory. However, PCI-E interface, the bridge between host memory and GPU, has much lower bandwidth than global memory which is inside GPU. This requires usto reduce data transferring between main memory and GPU as much as possible to avoid the performance loss. Comparing to other parallel computing tools based on multi-core CPU such as MPI, these three issues raise a challenge for GTS to get a high speedup on GPU.
@@ -634,7 +637,7 @@ We adopt the idea of PR-quadtree\cite{DBLP:conf/gis/LettichOS15} to overcome thi
 %
 % a figure shows the corresponding of tree and the cells
 %
-the root is corresponding to the whole plane. Except for root, one and another levels of nodes are generated recursively by dividing areas of their parent into four quadrant to make sure the number of points within each node's area is all less than a user specified parameter $vol_{max}$. Also, if the number of points in a node is less than $vol_{max}$, it would not be divided anymore and regarded as leaf node. GT-quadtree is built based on fixed grid, with each leaf node containing all the cells of grid within its spatial area. Morton encoded identifiers are assigned to cells of fixed grid and nodes at different levels of GT-quadtree, as figure \ref{GTQuadtree} shows, noting that the node $i$ in $j$ level is represented as $(j,i)$. With the help of Morton encoding, we can traverse from a node to its parent within a bitwise operation in GT-quadtree and vice versa. For example, in case showed in figure \ref{GTQuadtree}, the parent of node $(2,4)$ in figure \ref{NodesL12} is $(1,1)$ in figure \ref{NodesL1}. This process is done by profroming a two-bits right shift on $100(4)$, getting $1(1)$. 
+the root is corresponding to the whole plane. Except for root, one and another levels of nodes are generated recursively by dividing areas of their parent into four quadrant to make sure the number of points within each node's area is all less than a user specified parameter $vol_{max}$. Also, if the number of points in a node is less than $vol_{max}$, it would not be divided anymore and regarded as leaf node. GT-quadtree is built based on fixed grid, with each leaf node containing all the cells of grid within its spatial area. Morton encoded identifiers are assigned to cells of fixed grid and nodes at different levels of GT-quadtree, as figure \ref{GTQuadtree} shows, noting that the node $i$ in $j$ level is represented as $(j,i)$. With the help of Morton encoding, we can traverse from a node to its parent within a bitwise operation in GT-quadtree and vice versa. For example, in case showed in figure \ref{GTQuadtree}, the parent of node $(2,4)$ in figure \ref{NodesL12} is $(1,1)$ in figure \ref{NodesL1}. This process is done by profroming a two-bits right shift on $100(4)$, getting $1(1)$. This feature of GT-quadtree benefits both range query and similarity query, which will be illustrated in Section V.
 
 %Moreover, operation judging whether two bins are adjacent, which is required in histogram pruning algorithm when doing similarity query, can be fastly finished with Morton encoding. Converting the identifier into binary, the odd number bits represent the x-coordinate and even number bits represent the y-coordinate. Figure xx shows an example,  
 
@@ -660,11 +663,11 @@ the root is corresponding to the whole plane. Except for root, one and another l
 
 We designed sub-trajectories arrays storing the original geogrophical information of trajectories, making GT-quadtree meet with the memory access pattern required by GPU. Sub-trajectories array contains the sample points whose locations are within a given cell in GT-quadtree's fixed grid. These points are organized as the order of time. Meanwhile, points belong to the same trajectory are distributed together. For example, if there are sample points $\{p_{1,1},p_{1,2},...,p_{1,m}\}$ and $\{p_{2,5},p_{2,6},...,p_{2,n}\}$ from trajectory $t_{1}$ and $t_{2}$ in cell $15$, the content of sub-trajectories array of cell $15$ will be $\{p_{1,1},p_{1,2},...,p_{1,m},p_{2,5},p_{2,6},...,p_{2,n}\}$. This arrangement benifits the query performance because when the points of one cell are transferred into GPU they are located together in global memory, which satisfies the condition of coalesce accessing when GPU cores fetching data from global memory. With Morton encoding of identifiers of nodes, cells within the same node are stored continuously, indicating points within the same node are also stored continuously. \textbf{This benefit will be illustrated in detail when we introduce query engine. (Add a figure to illustrate this)}
 
-Operation of accessing to the whole trajectory is neccessary for similarity query based on local time shifting. To satisfy this requirement, we create the cell-based trajectory list to obtain the whole trajectory with the help of sub-trajectories arrays and fixed grid of GT-quadtree. The list contains the cell-based trajectories, each of which is transformed from the original trajectory by recording all cells' identifiers it goes through as a sequence. For example, in figure \ref{GTQuadtree}, the trajectory can be transformed into its cell-based trajectory $[1,4,4,5,7,7,7]$. After this transformation, we can fetch the whole trajectory by reading the sample points from sub-trajectories array of cells in cell-based trajectory one after another. We can also generate the frequency vector of a trajectory quickly from corresponding cell-based trajectory, which plays an important role in pruning for similarity query.
+Operation of accessing to the whole trajectory is neccessary for similarity query based on global alignment. To satisfy this requirement, we create the cell-based trajectory list to obtain the whole trajectory with the help of sub-trajectories arrays and fixed grid of GT-quadtree. The list contains the cell-based trajectories, each of which is transformed from the original trajectory by recording all cells' identifiers it goes through as a sequence. For example, in figure \ref{GTQuadtree}, the trajectory can be transformed into its cell-based trajectory $[1,4,4,5,7,7,7]$. After this transformation, we can fetch the whole trajectory by reading the sample points from sub-trajectories array of cells in cell-based trajectory one after another. We can also generate the frequency vector of a trajectory quickly from corresponding cell-based trajectory, which plays an important role in pruning for similarity query.
 
 \subsection{Construction}
 
-(This part differ very small)
+(This part differ very small to quadtree building)
 
 Storage component construction starts initially with an empty fixed grid covering the whole spatial plane. We first set the length of each cell is set to $m$ times of specified noise threshold of EDR distance $\epsilon$. It make the cell equivelent as two-dimensional bin. Then we build a grid containing $4^{m}$ cells, to guarantee that we can build a quadtree on it. Identifiers of cells are assigned according to the rule of Morton encoding, as figure \ref{Grid} shows.
 
@@ -720,47 +723,58 @@ First, for each query, we use cell-based trajectories to calculate the lower bou
 	\end{algorithmic}
 \end{algorithm}
 
-There is some challenges of performance in our proposed algorithm 1. In the most setting in actual situation, the number of cells are usually large, making the computation of lower bound a time-consuming process. For example, in Shanghai private cars dataset, an area of $45\times 55 km^{2}$ is divided into $247500$ cells, if threshold $\epsilon$ in EDR is set as $100m$. Besides, although through filtering, massive expensive EDR computations are still neccessary to execute. Attention that the computation cost of EDR between two trajectories is O($mn$)(m is the length of trajectory 1 and n is the length of trajectory 2), an efficiency issue arises as the length of trajectories become longer. To overcome these challenges, we use GPU to accelerate lower bound generation and EDR calculation. However, this migration is not trivial because of the special architecture and programming model of GPU. Aiming to overcome these challenges and get better performance, we will introduce our strategies and implementation in detail at following part of this section.
+There is some challenges of performance in our proposed algorithm 1. In the most setting in actual situation, the number of cells are usually large, making the computation of lower bound a time-consuming process. For example, in Shanghai private cars dataset, an area of $45\times 55 km^{2}$ is divided into $247500$ cells, if threshold $\epsilon$ in EDR is set as $100m$. Besides, although through filtering, massive expensive EDR computations are still neccessary to execute. Attention that the computation cost of EDR between two trajectories is O($mn$)(m is the length of trajectory 1 and n is the length of trajectory 2), an efficiency issue arises as the length of trajectories become longer. 
+
+To overcome these challenges, we use GPU to accelerate EDR calculation with GT-quadtree. However, this migration is not trivial because of the special architecture and programming model of GPU. Aiming to overcome these challenges and get better performance, we will introduce our strategies and implementation in detail at following part of this section.
 
 \subsubsection{Lower Bound Generation}
 % candidate set and priority queue, calculate lower bounds in parallel.
-The lower bound of EDR can be derived from cell-based trajectories. This process is proposed in \cite{DBLP:conf/sigmod/ChenOO05}. We first generate frequency vector (FV) for each trajectory, storing the sample points the trajectory has in each cell. For example, in figure x, suppose the depth of GT-quadtree is 3. For a trajectory whose cell-based trajectory is [0,0,0,0,1,1,1,2,3,3], its frequency vector would be [4,3,1,2]. Frequency distance (FD), defined as the edit distance between two FVs, has close relationship with EDR between two corresponding trajectories. It is easy to find that insert, delete and replace operations in EDR is similar to adding one, subtracting one and subtracting one in one element then adding one in other element on FV correspondingly. But one adjacent case is special. If there is an replace operation between two adjacent elements of FV, indicating these two corresponding cells are adjacent in grid, it may cause one unneccessary operation in EDR. For example, given two FVs, $v_{1}=<1,0,0,0>$, $v_{2}=<0,1,0,0>$, and corresponding trajectories $R_{1}=(t_{1},0.9)$, $R_{2}=(t_{2},1.1)$ and $\epsilon =1$, replace operation is needed in FD but unneccessary in EDR. So, we can derive that FD is the lower bound of EDR.
+\begin{figure}[!t]\centering
+	\includegraphics[width=7cm]{pdf/VirtualGrid.pdf}
+	\caption{An example of virtual grid with 4 cells and the transformation between IDs in different grids\label{fig:VirtualGrid}}
+\end{figure}
 
-Although the calculation cost of FD is lower than EDR, it still spends lots of time. There are two reasons. One is there are lots of trajectories in storage and for each of them an FD should be calculated. The other is if a small $\epsilon$ is set by user, the length of FV will be very long, causing even one FD is also computational cost. To accelerate this process, we distribute the FD computation workload of all queries to GPU evenly. To improve the throughtput of our query engine, FVs are pre-computed before the first query. When a query $q$ comes, suppose there are $N$ trajectories $t_{1},t_{2},...,t_{N}$ in storage, $N$ tasks computing FD between query trajectory and trajectories in storage are generated and each of them is assigned to a thread block, acting as the lower bound of EDR. 
+The lower bound of EDR can be derived from cell-based trajectories. This process is proposed in \cite{DBLP:conf/sigmod/ChenOO05}. We first generate frequency vector (FV) for each trajectory, storing the sample points the trajectory has in each cell. For example, in figure \ref{fig:VirtualGrid}, suppose the depth of GT-quadtree is 3. For a trajectory whose cell-based trajectory is [1,4,4,5,7,7,7], its frequency vector would be [0,1,0,0,2,1,0,3,0,...] of length 16. Frequency distance (FD), defined as the edit distance between two FVs, has close relationship with EDR between two corresponding trajectories. It is easy to find that insert, delete and replace operations in EDR is similar to adding one, subtracting one and subtracting one in one element then adding one in other element on FV correspondingly. But one adjacent case is special. If there is an replace operation between two adjacent elements of FV, indicating these two corresponding cells are adjacent in grid, it may cause one unneccessary operation in EDR. For example, given two FVs, $v_{1}=<1,0,0,0>$, $v_{2}=<0,1,0,0>$, and corresponding trajectories $R_{1}=(t_{1},0.9)$, $R_{2}=(t_{2},1.1)$ and $\epsilon =1$, replace operation is needed in FD but unneccessary in EDR. So, we can derive that FD is the lower bound of EDR.
 
-Algorithm 2 shows the procedure of generate FD in each thread block. Firstly we calculate the difference between two FVs (line 1-3) in parallel. Considering the adjacent case in edit distance calculation mentioned, we reduce the difference if two elements are neighbor cell in grid of GT-quadtree (line 4-12). Given an Morton encoded cell ID, its neighbors' ID can be generated in several cheap bitwise operations by thread of GPU. Finally, FD is calculated from the difference of two FVs by a parallel addition and comparison (line 13-17). With strategy that in each parallelly loop almost an equal number of elements are assigned to each thread in an sequencial increasing order, our algorithm achieves thread level load balancing and coalesce accessing pattern. It is worth noting that this process is also load balancing in task level because all FVs have the same number of elements.
+Although the calculation cost of FD is lower than EDR, it still spends lots of time. There are two reasons. One is there are lots of trajectories in storage and for each of them an FD should be calculated. The other is if a small $\epsilon$ is set by user, the length of FV will be very long, causing even one FD is also computational cost. Aiming to these two issues, we proposed the strategies respectively. Firstly, widely used multicore CPU allows us to distribute the FD computation workload of all queries to different cores evenly, and then the calculation of all FD can finish in shorter time because the tasks are divided. Secondly, for the FD computation in each query, inspired by a solution proposed in \cite{DBLP:conf/sigmod/ChenOO05}, we build a virtual grid, in which the length of cell is larger than that of GT-quadtree's fixed grid, to reduce the length of FVs. It is trivial to execute FD calculation of different queries by using multithreading technology, so we then introduce the virtual grid in detail. 
 
-\begin{algorithm}[htb]
-	\caption{GenerateLowerBound}
-	\label{alg:GetLB}
-	\begin{algorithmic}[1]
-		\REQUIRE ~~\\
-		Frequency Vector of query trajectory $qFV=[qFV_{1},qFV_{2},...]$;
-		
-		FV of the trajectory in task $tFV=[tFV_{1},tFV_{2},...]$;
-		
-		Number of cells $N_{cell}$;
-		\ENSURE ~~\\
-		Frequency Distance between $qFV$ and $tFV$: $FD$
-		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
-		\STATE $dFV[i] \leftarrow qFV[i]-tFV[i]$
-		\ENDFOR
-		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
-		\FOR{each $j$ adjacent to $i$}
-		\IF{the sign of $dFV[j]$ and $dFV[i]$ are different}
-		\STATE $x \leftarrow min(|dFV[i]|,|dFV[j]|)$
-		\STATE $dFV[i] \leftarrow dFV[i] + ((dFV[i]>0)-0.5)*2$
-		\STATE $dFV[j] \leftarrow dFV[j] + ((dFV[j]>0)-0.5)*2$
-		\ENDIF
-		\ENDFOR
-		\ENDFOR
-		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
-		\STATE $positive \leftarrow positive+(dFV[i]>0)*dFV[i]$
-		\STATE $neagtive \leftarrow negative+(dFV[i]<0)*dFV[i]$
-		\ENDFOR
-		\STATE $FD \leftarrow max(positive,negative)$
-	\end{algorithmic}
-\end{algorithm}
+The virtual grid can be seen as all of nodes in one layer of GT-quadtree. Figure \ref{fig:VirtualGrid} is an example: a virtual grid with 4 cells is built based on a fixed grid with 16 cells. Chen\cite{DBLP:conf/sigmod/ChenOO05} has proved that FD is still the lower bound of EDR as long as the length of cell in grid is the multiple of $\epsilon$, no matter how large it is. So, if we use the virtual grid to calculate FD, the cost of computation will decrease. Owing to the Morton encoding of GT-quadtree, the virtual grid can be used without the requirement of extra memory consumption, because we can directly get which cell in the virtual grid contains a given point and then generate FVs. For example, in figure \ref{fig:VirtualGrid}, the original FV of the trajectory can be simplified into [1,5,0,0], whose length is decreased from 16 to 4, just by a transformation implemented by right shifting. However, it should also be pointed out that a tradeoff should be found between too large and too small cells because the larger cells are, the looser bound is. 
+
+
+
+%Algorithm 2 shows the procedure of generate FD on multicore CPU. Firstly we calculate the difference between two FVs (line 1-3) in parallel. Considering the adjacent case in edit distance calculation mentioned, we reduce the difference if two elements are neighbor cell in grid of GT-quadtree (line 4-12). Given an Morton encoded cell ID, its neighbors' ID can be generated in several cheap bitwise operations by thread of GPU. Finally, FD is calculated from the difference of two FVs by a parallel addition and comparison (line 13-17). With strategy that in each parallelly loop almost an equal number of elements are assigned to each thread in an sequencial increasing order, our algorithm achieves thread level load balancing and coalesce accessing pattern. It is worth noting that this process is also load balancing in task level because all FVs have the same number of elements.
+%
+%\begin{algorithm}[htb]
+%	\caption{GenerateLowerBound}
+%	\label{alg:GetLB}
+%	\begin{algorithmic}[1]
+%		\REQUIRE ~~\\
+%		Frequency Vector of query trajectory $qFV=[qFV_{1},qFV_{2},...]$;
+%		
+%		FV of the trajectory in task $tFV=[tFV_{1},tFV_{2},...]$;
+%		
+%		Number of cells $N_{cell}$;
+%		\ENSURE ~~\\
+%		Frequency Distance between $qFV$ and $tFV$: $FD$
+%		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
+%		\STATE $dFV[i] \leftarrow qFV[i]-tFV[i]$
+%		\ENDFOR
+%		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
+%		\FOR{each $j$ adjacent to $i$}
+%		\IF{the sign of $dFV[j]$ and $dFV[i]$ are different}
+%		\STATE $x \leftarrow min(|dFV[i]|,|dFV[j]|)$
+%		\STATE $dFV[i] \leftarrow dFV[i] + ((dFV[i]>0)-0.5)*2$
+%		\STATE $dFV[j] \leftarrow dFV[j] + ((dFV[j]>0)-0.5)*2$
+%		\ENDIF
+%		\ENDFOR
+%		\ENDFOR
+%		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
+%		\STATE $positive \leftarrow positive+(dFV[i]>0)*dFV[i]$
+%		\STATE $neagtive \leftarrow negative+(dFV[i]<0)*dFV[i]$
+%		\ENDFOR
+%		\STATE $FD \leftarrow max(positive,negative)$
+%	\end{algorithmic}
+%\end{algorithm}
 
 \subsubsection{Parallel EDR Calculatation}
 % introduce how to calculate EDR in parallel on GPU
@@ -889,11 +903,11 @@ For similarity query, we only implement the original EDR based top-k similarity 
 
 \subsubsection{Experiment Overview}
 
-We first test the memory comsumption of our system. We measure the average and highest memory usage of different system. The memory consumption is measured after finishing building index for different size dataset, to show that our system use a similar amount of memory comparing to systems not supporting local time shifting based top-k similarity query. All other parameters are tuned to the optimal case.
+We first test the memory comsumption of our system. We measure the average and highest memory usage of different system. The memory consumption is measured after finishing building index for different size dataset, to show that our system use a similar amount of memory comparing to systems not supporting global alignment based top-k similarity query. All other parameters are tuned to the optimal case.
 
 After that, the scalability is tested. As there is no method to shut some cores in GPU, we can only test the situation with different number of GPUs.
 
-In query performance part, same as the most of previous works, we use query latency as our metric. We compare the query time latency of two kinds of queries in different baselines and state-of-the-art systems in a large query set situation. When testing range query, we randomly generate 1000 range queries with different areas and positions and reckon the time consumption during finishing all of queries. For similarity query, we first randomly choose 1000 trajectories from dataset as the query set. Then, we execute similarity query under the settings of different query parameters including $k$ and $\epsilon$. Queries are handled with formed query set and time consumption in both baseline method and GTS are then calculated. 
+In query performance part, same as the most of previous works, we use query latency as our metric. We compare the query time latency of two kinds of queries in different baselines and state-of-the-art systems in a large query set situation. When testing range query, we randomly generate range queries with different areas and positions and reckon the time consumption during finishing all of queries. To reflect the true working environment as much as possible, the chosen positions are restricted to the central district of Shanghai ($31.11^{\circ} N-31.36^{\circ} N, 121.39^{\circ} E-121.58^{\circ} E$). For similarity query, some trajectories are selected randomly from dataset as the query set. During the query, for each trajectory in query set, the result of top-$k$ similarity query is returned under the settings of different query parameters including $k$ and $\epsilon$. Queries are handled with formed query set and time consumption in both baseline method and GTS are then calculated. 
 
 
 We run all the experiments on a server equipped with ten-core Xeon E5-2650 v3 processor clocked at 2.3GHz, 64GB of RAM, 4TB of disk storage and an NVIDIA Tesla K80 GPU with 6GB graphical memory. Our system is implemented by C++ with CUDA 8.0, and operating system is CentOS 7.
@@ -904,17 +918,6 @@ We run all the experiments on a server equipped with ten-core Xeon E5-2650 v3 pr
 to show the memory consumption of our solution is not too larger than state-of-the-art methods.
 (1 table)
 
-
-\subsection{Scalability}
-Show how query latency changes as the number of GPU goes from 1 to 2 (use the GPU of DDST). And the number of cores used can not be controlled in CUDA. 
-\subsubsection{Range Query}$  $
-
-(figure 1): different GPU num
-
-\subsubsection{Top-k similarity Query}$  $
-
-(figure 2): different GPU num
-
 \subsection{Query Latency}
 
 Compare with state-of-art methods including STIG and WOZ for range query.
@@ -922,6 +925,35 @@ Compare with state-of-art methods including STIG and WOZ for range query.
 Compare with baseline methods including multi-core CPU implementation of range query and top-k similarity query.
 
 TKSimGPU use a simpler similarity defination method, so we don't consider it in our experiment. 
+
+\subsubsection{Range Query}$  $
+
+(figure 6): different $N_Q$ (workload)
+
+\subsubsection{Top-k similarity Query}$  $
+
+(figure 11): different $N_{Q}$ (workload)
+
+\subsection{Speedup Ratio}
+Show how query latency changes as the number of GPU goes from 1 to 2 (use the GPU of DDST). And the number of cores used can not be controlled in CUDA. 
+
+(two figures) Compare with single-core CPU, the speedup ratio
+
+different GPU num
+
+\subsection{Scalability}
+
+\subsubsection{Range Query}$  $
+
+(figure 7)：different dataset size
+
+\subsubsection{Top-k similarity Query}$  $
+
+(figure 12): different dataset size
+
+\subsection{Parameters Tuning}$  $
+
+
 
 \subsubsection{Range Query}
 $  $
@@ -932,9 +964,6 @@ $  $
 
 (figure 5): different $S_{RQ}$ (selectivity)
 
-(figure 6): different $N_Q$ (workload)
-
-(figure 7)：different dataset size
 
 \subsubsection{Top-k similarity Query}
 $  $
@@ -945,9 +974,6 @@ $  $
 
 (figure 10): different $k$ 
 
-(figure 11): different $N_{Q}$ (workload)
-
-(figure 12): different dataset size
 
 % An example of a floating figure using the graphicx package.
 % Note that \label must occur AFTER (or within) \caption.
