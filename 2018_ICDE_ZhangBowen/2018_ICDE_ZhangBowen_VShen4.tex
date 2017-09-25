@@ -28,12 +28,19 @@
 \newcommand{\alltraj}{{{\cal T}}\xspace}
 \newcommand{\edr}{{\delta}\xspace}
 \newcommand{\allcell}{{\cal C}\xspace}
-%\newcommand{\trajcell}{{f_c}\xspace}
+\newcommand{\trajcell}{{f_c}\xspace}
 \newcommand{\trajtable}{{\cal S}\xspace}
 \newcommand{\quadtree}{{\cal P}\xspace}
+\newcommand{\trajindex}{{{\cal I}_T}\xspace}
+\newcommand{\treeindex}{{{\cal I}_Q}\xspace}
+
+\newcommand{\bigoh}{{\rm O}\xspace}
+
 
 \newcommand{\eat}[1]{}
 \newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
 
 %
 \title{An Efficient GPU-accelerated Framework for Answering Trajectory Queries}
@@ -84,7 +91,7 @@ As the development of smart devices equipped with GPS, here comes a large amount
 % \end{keywords}
 %
 
-\section{Introduction}\label{sec:intro}
+\section{Introduction}
 % no \IEEEPARstart
 
 %What is the problem?
@@ -95,6 +102,8 @@ As the development of smart devices equipped with GPS, here comes a large amount
 %the objectives of trajectory query processing: (i) effciency; (ii) high throughput; (iii) others?? 
 
 With the rapid development of wireless communication and mobile computing techniques, large amounts of spatial trajectories have been generated continuously from every corner of the world.
+%shenyy:real-life statistics?
+%zbw:add an example about DIDI
 For example, a Chinese online transportation network company called DiDi is processing over 3 million trips every day in China~\cite{DidiExample}, and millions of trajectories produced by these trips are recorded in real time to improve the quality of service.
 A \emph{trajectory} is typically represented as a sequence of successive points of moving objects, where each point consists of geospatial coordinates and a timestamp. 
 The emergence of such trajectory data facilitates a wide spectrum of applications including route planing~\cite{RoutePlan}, trajectory pattern mining~\cite{DBLP:journals/tkde/ZhengZYSZ14} and travel time prediction~\cite{DBLP:conf/gis/LeeSCC12}.
@@ -122,7 +131,6 @@ Recently, considerable research efforts have been devoted to developing speciali
 However, these state-of-the-art solutions are typically designed for answering either range or similarity queries, but not both. To handle both trajectory queries, they rely on separate indices with different parameter settings, which may introduce problems such as data duplication and index inconsistency. Furthermore, the performance of these systems can be limited by the computational power of CPU cores and suffer from low throughput for processing queries in batch. It was reported in Sayan's work~\cite{EDWP15} that
 the total execution time of 10 top-5 similarity queries exceeds 700 seconds.
 %%shenyy: the result is based on what kind of method??
-
 
 
 
@@ -168,12 +176,8 @@ The main contributions of this work is the following.
 	our system on two real-life datasets and evaluate its performance, proving that it gets about 38x speedup for range query and 67x speedup for top-k similarity query respectively comparing to the implementation on single-core CPU with an acceptable memory occupation.
 \end{itemize}
 
-%The remainder of this paper is organized as follows. Section~\ref{sec:prelim} provides definitions and background. 
-%After that, in Section~\ref{sec:archi} we briefly introduce the architecture of our framework. We propose our design of storage component in Section~\ref{sec:index}. The query processing component is described in detail in Section~\ref{sec:query}. Some optimization on implementation level is introduced in Section~\ref{sec:optimization}. In Section~\ref{sec:exp}, we evaluate our system and results are reported. Some related works are summarized in Section~\ref{sec:related}, while Section~\ref{sec:conclusion} concludes the paper. 
-%%shenyy: verbose!!!!keep it short
-
-The remainder of this paper is organized as follows. Section~\ref{sec:prelim} gives preliminaries. Section~\ref{sec:framework} describes our \frname framework. Section~\ref{sec:index} presents index structure. Section~\ref{sec:query} and Section~\ref{sec:optimization} introduce GPU-accelerated query processing approaches and optimizations, respectively. We provide experimental results in Section~\ref{sec:exp}, review related works in Section~\ref{sec:related} and conclude this paper in Section~\ref{sec:conclusion}.
-
+The remainder of this paper is organized as follows. Section~\ref{sec:prelim} provides definitions and background. 
+After that, in Section~\ref{sec:archi} we briefly introduce the architecture of our framework. We propose our design of storage component in Section~\ref{sec:index}. The query processing component is described in detail in Section~\ref{sec:query}. Some optimization on implementation level is introduced in Section~\ref{sec:optimization}. In Section~\ref{sec:exp}, we evaluate our system and results are reported. Some related works are summarized in Section~\ref{sec:related}, while Section~\ref{sec:conclusion} concludes the paper. 
 
 
 \eat{
@@ -452,7 +456,7 @@ Figure~\ref{fig:arch} provides an overview of our \frname framework, which consi
 There are two main steps in this component:
 
 \noindent $\bullet$ {\bf Building global grid and reorganizing trajectory points}:
-As discussed in Section~\ref{sec:intro}, our index structure depends on cell-level trajectory representation. This is archived by constructing a squared \emph{global grid} covering all the trajectory points. We divide this grid into $4^n$ disjoint \emph{cell}s in the same size along the two geospatial coordinates, where $n$ can be pre-defined to control the total number of cells and point density per cell. Given raw trajectories, we map each trajectory point to its covering cell accordingly. All the points in the same cell are sorted by their belonging trajectory ids and timestamps in ascending order. Let $\allcell$ denote all the cells in the global grid and $P(C)$ denote a sequence of points residing in cell $C\in \allcell$.
+As discussed in Section~\ref{sec:intro}, our index structure depends on cell-level trajectory representation. This is archived by constructing a squared \emph{global grid} covering all the trajectory points. We divide this grid into $4^\lambda$ disjoint \emph{cell}s in the same size along the two geospatial coordinates, where $n$ can be pre-defined to control the total number of cells and point density per cell. Given raw trajectories, we map each trajectory point to its covering cell accordingly. All the points in the same cell are sorted by their belonging trajectory ids and timestamps in ascending order. Let $\allcell$ denote all the cells in the global grid and $P(C)$ denote a sequence of points residing in cell $C\in \allcell$.
 
 \noindent $\bullet$ {\bf Building \idxname index}:
 Our index structure contains two parts: PR-quadtree~\cite{DBLP:conf/gis/LettichOS15} and cell-based trajectory table, both of which are connected to a grid of cells as mentioned above.
@@ -480,7 +484,7 @@ In this step, we compute a lower bound of $\edr(T, T')$ for each $T'\in \alltraj
 In each iteration of this step, we select a set of trajectories with the smallest EDR lower bounds, because they are more likely be to the top-$k$ answers. We reconstruct these candidate trajectories, denoted by $\simcand$, from a grid of cells.
 
 \noindent $\bullet$ {\bf GPU-accelerated ERR computation}:
-In each iteration, the input to this step is query trajectory $T$ and several candidate trajectories $\simcand$. We distribute candidate trajectories among GPU cores uniformly and each EDR computation is performed by one CUDA thread. Due to the high computation cost of EDR, we propose a parallel algorithm to further improve the performance. 
+In each iteration, the input to this step is query trajectory $T$ and several candidate trajectories $\simcand$. We distribute EDR computation tasks among CUDA blocks uniformly and the each state in every independent step within the computation is performed by each CUDA thread. Due to the high computation cost of EDR, we propose a parallel algorithm to further improve the performance. 
 
 In the end of each iteration, we insert candidate trajectories into priority queue $PQ$ based on their EDR values. The iteration terminates when (1) $PQ$ contains $k$ trajectories, and (2) none of the candidate trajectories in the current iteration has lower EDR value than the tail trajectory in $PQ$.
 
@@ -534,224 +538,242 @@ In this section, we describe our spatial index \idxname developed for answering 
 
 \subsection{Structure of \idxname}
 
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=\linewidth]{pdf/Index_V2.pdf}
+	\caption{Structure of \idxname\label{fig:Index}}
+\end{figure}
+
 % Index performs as an important role in storage system by pruning unnecessary accessing of data. However, existing works about index on trajectories can not be easily used to solve our problem. First, in previous researches about trajectory storage system, different kind of query need different type of index, because of different characters of pruning strategies. Pruning on range query and k-nearest neighbor point query concern more about the relation between one query location and a trajectory. On the other hand, pruning on top-k similarity query concerns about the relation between two trajectories, which are sequences of locations, make it differentiated from two kinds of queries mentioned. Second, as mentioned in background, programming framework of CUDA raises a mass of claims about storage.
 
 
 Grid-based spatial indices are known to have low construction/maintained costs and facilitate effective pruning for range and similarity queries~\cite{}. 
-Our index \idxname is thus developed based on a squared \emph{global grid}, covering all the trajectories. In our design, we simply partition the grid into $4^n$ cells of the same size along two geospatial coordinates, which can be visualized into a $2^n\times 2^n$ cell matrix (see Figure~\ref{}).
+Our index \idxname is thus developed based on a squared \emph{global grid}, covering all the trajectories. In our design, we simply partition the grid into $4^\lambda$ cells of the same size along two geospatial coordinates, which can be visualized into a $2^\lambda \times 2^\lambda$ cell matrix (e.g., a grid of $16$ cells in Figure~\ref{fig:Index}).
 Each cell $C$ has an identifier $cid$, which is determined by the Morton-based encoding method~\cite{}.
 As mentioned in Section~\ref{sec:framework}, we denote by $\allcell$ the set of cells.
 
 %We associate each cell $C\in\allcell$ with an identifier $cid$, which determines the
 
-Based on a grid $\allcell$ of cells, we develop our spatial index \idxname following a two-part structure: cell-based trajectory table and PR-quadtree. Figure~\ref{} shows our index structure.
+Based on a grid $\allcell$ of cells, we develop our spatial index \idxname following a three-part structure: cell-based trajectory table $\trajtable$, trajectory index $\trajindex$ and a quadtree-like index $\treeindex$. Figure~\ref{fig:Index} shows our index structure.
 
 %introduce part1
-\noindent {\bf Cell-based trajectory table $\trajtable$}.
+\subsubsection{Cell-based trajectory table $\trajtable$}
+%\noindent {\bf Cell-based trajectory table $\trajtable$}.
 This table is used to store all trajectories in cell-level representation. We adopt such representation to facilitate pruning strategies for both range and similarity queries. 
-We also associate the table with a trajectory index to reconstruct any trajectory efficiently. 
 To get cell-level representation for any trajectory in $\alltraj$, we map each trajectory point to its covering cell. 
 We then define a cell-based trajectory table $\trajtable$ as a sequence of cells ordered by cell identifiers, i.e., $C_1\rightarrow\cdots\rightarrow C_{|\allcell|}$, where $C_i.cid < C_{i+1}.cid$ for $i\in[1,|\allcell|-1]$.
-Within a cell $C\in\allcell$, we keep all the trajectory points belonging to it, denoted by $P(C)$, in ascending order of (trajectory id, timestamp).
-In this manner, $\trajtable$ stores points from the same trajectory in each cell continuously in memory.
-
-To reconstruct raw trajectories, we maintain a trajectory index over $\trajtable$. The index maps a trajectory id $tid$ to a vector $L_{tid}$. Each element in $L_{tid}$ is a triplet of ($cid, offset, length$), representing a subsequence of the raw trajectory $T_{tid}$. Specifically, $offset$ and $length$ specify a continuous part in $\trajtable$, which contains all the points from trajectory $T_{tid}$ that are within cell $C_{cid}$. By traversing vector $L_{tid}$, we are able to obtain all the points in trajectory $T_{tid}$. Note that the size of $L_{tid}$ is typically smaller than the number of trajectory points, especially when the points from a trajectory are aggregated into a few cells.
-We illustrate an example of $\trajtable$ in Figure~\ref{}... [give an example?]
-
-
+Within each cell $C\in\allcell$, we keep all the trajectory points belonging to it, denoted by $\phi_p(C)$, in ascending order of (trajectory id, timestamp).
+In this manner, $\trajtable$ stores points from the same trajectory in each cell continuously.
 
 %introduce part2
 
-\noindent  {\bf PR-quadtree $\quadtree$~\cite{}}.
+\subsubsection{Trajectory index $\trajindex$}
+%\noindent {\bf Trajectory index $\trajindex$}. 
+We associate the table $S$ with a trajectory index $\trajindex$ to reconstruct any trajectory efficiently. The index maps a trajectory id $tid$ to a vector $L_{tid}$. Each element in $L_{tid}$ is a triplet of ($cid, offset, length$), representing a subsequence of the raw trajectory $T_{tid}$. Specifically, $offset$ and $length$ specify a continuous part of $\trajtable$ starting from $offset$ to $offset+length-1$, which contains all the points from trajectory $T_{tid}$ that are within cell $C_{cid}$. By traversing all the elements in $L_{tid}$, we are able to obtain all the points in trajectory $T_{tid}$. Note that the size of $L_{tid}$ is typically smaller than the number of trajectory points, especially when the points from a trajectory are aggregated into a few cells.
+Figure~\ref{fig:Index} shows an example of $\trajtable$ and $\trajindex$. [give an example?]
+
+
+
+%introduce part3
+\subsubsection{Quadtree-like index $\treeindex$}
+%\noindent  {\bf Quadtree-like index $\treeindex$}.
 While cell-based trajectory table provides a way to organize trajectory data, it is easy to see that the number of points per cell may differ greatly. 
 %Intuitively, cells in central areas of a city can have high point density and those in remote areas may contain zero point. 
-Such differences result in imbalanced workload on GPU during query processing (see details in Section~\ref{}). To alleviate the problem, we leverage PR-quadtree~\cite{} to group cells into coarse-grained \emph{block}s.
-
-PR-quadtree is a $4$-ary tree, where the root node represents the global grid. Each node $N$ in the tree has several attributes: the node level $l$ in the tree, the node id $nid$ within the level, and a binary label $isleaf$ indicating whether the node is leaf or not. Each node $N$ corresponds to a virtual block $B_N\subseteq\allcell$ containing a set of cells. A node $N$ can have $4$ child nodes if we split the block $B_N$ uniformly by two coordinates.
-One can easily see that in PR-quadtree, (1) any two nodes following the ancestor-descendant relationship satisfy the spatial inclusive policy, i.e., $B_{N_1}\subseteq B_{N_2}$ iff $N_1$ is a descendant of $N_2$; (2) any cell in $\allcell$ belongs to exactly $1$ leaf node.
+Such differences result in imbalanced workload on GPU during query processing (see details in Section~\ref{sec:query}). To alleviate the problem, we propose to group cells into coarse-grained \emph{block}s using a quadtree-like index $\treeindex$.  
+$\treeindex$ can be viewed as a subtree of the complete quadtree $QT$, as described below.
 
 
+$QT$ organizes all $4^n$ cells using $n+1$ levels and each node in it corresponds to a \emph{block} of cells, e.g., the root node represents the global grid and each leaf node corresponds to a cell.
+We denote by $N=(l, nid, isLeaf)$ a node in $QT$, where $l$ is the node level, $nid$ is the node id in level $l$ and $isLeaf$ is a binary variable indicating whether $N$ is a leaf or not. 
+Note that ($l$, $nid$) uniquely identify a node in $QT$.
+Interestingly, by employing Morton codes as cell identifiers, we can directly compute the set $\phi_c(N)$ of cells covered by any node $N$ in $QT$:
+\begin{equation}\label{eq:nodetocell}
+\small
+\phi_c(N) = \{C\in\allcell \mid 4^{n-l}\times nid \leq C.cid < 4^{n-l}\times (nid+1)  \}
+\end{equation}
+The above equation is guaranteed by the well-known relationship between Morton codes and quadtree structural properties~\cite{}.
+More importantly, the cells in $\phi_c(N)$ resides continuously in the trajectory table $\trajtable$.
 
-%summarize the benefits of two parts.
+
+
+We construct $\treeindex$ by pruning $QT$ in a bottom-up way. That is, we recursively prune all child nodes of $N$ iff the total number of trajectory points covered by the child nodes is lower than a threshold $\theta_p$. The resulting tree is recognized as $\treeindex$ with a set of new leaf nodes, denoted by $\phi_l(\treeindex)$, that cannot be pruned further. For instance, in Figure~\ref{}, the new leaf nodes of $\treeindex$ are $\{...\}$. One can verify that new lead nodes in $\treeindex$ provide a grouping over fine-grained cells and each leaf is a block of cells covering at least $\theta_p$ trajectory points:
+\begin{equation}\label{eq:cond1}
+\small
+\bigcup_{N\in\phi_l(\treeindex)} {\phi_c(N)}= \allcell \wedge\phi_c(N)\cap \phi_c(N') = \emptyset, \forall N, N'\in\phi_l(\treeindex)
+\end{equation}
+\begin{equation}\label{eq:cond2}
+\small
+\sum_{N\in\phi_l(\treeindex)}{|\phi_p(N)|} \geq \theta_p 
+\end{equation}
+%
+Note that the original quadtree $QT$ satisfies two properties: (1) the $nid$s of lead nodes in $QT$ has a 1-to-1 mapping to cell identifiers $cid$s; (2) if node $N'$ is the parent of $N$, we have $N'.level = N.level-1 \wedge N'.nid =  \lfloor N.nid/4 \rfloor$.
+Based on these properties, for any cell $C\in\allcell$, we can compute the leaf node in $\treeindex$ that covers $C$ based on the following theorem.
+%
+\begin{theorem}\label{le:findleaf}
+Given $\treeindex$ over $\allcell$ and a cell $C\in\allcell$, a leaf node $N\in \phi_l(\treeindex)$ covers $C$ iff $\lfloor C.cid/4^{n-N.l}\rfloor = N.nid$.	
+%shenyy:check
+\end{theorem}
+
 
 
 \eat{
-In \idxname, there is a global grid overlapping all of trajectories in dataset, and a quadtree index built based on the grid.
+PR-quadtree can be pruned from a complete-quadtree $QT$. As figure~\ref{fig:Index} shows, based on Global Grid, we can organize all cells of $G$ in a $QT$ in which each leaf node is corresponding to a cell. We can see the depth of $QT$ is $\lambda+1$, because there are total $4^\lambda$ cells in $G$. In each level of $QT$, each node $N=(nid,level,isLeaf,block)$ is assigned with an ID $nid$ according to the ascending order from 0. The level of the node $level$ from 0 and a binary label $isLeaf$ indicating whether the node is leaf or not are also stored in each node. Each node has a $block$ corresponding to $4^k$ cells, where $k=\lambda + 1 - level$. 
+In $QT$, the ID of cells in $N.block$ can be computed from $N.nid$ through binary shifting operations, according to the theorem~\ref{theo:nodeToCell}.
+
+\begin{theorem}{\label{theo:nodeToCell}}
+	Given Node $N=(nid,level,isleaf,block)$, the set of the ID of cells corresponding to $N$ is:
+	$$block=\{4^{\lambda-level}\times nid + j|j\in \mathbb{N},0\leq j< 4^{\lambda-level}\}$$
+\end{theorem}
+
+For example, ...[give an example?]
+
+PR-quadtree is generated by \textit{merge} some nodes in $QT$. We first define the operation ``merge'' to the node $N$ of $QT$:
+\begin{definition}[merge]\label{def:merge}
+	Given a non-leaf node $N$ in $QT$, a merge operation indicates:
+	(1) drop all the daughters of $N$;
+	(2) set $N.isLeaf$ to $TRUE$.
+\end{definition}
+
+From $QT$, we scan the nodes $N$ in the same level and merge them from level $\lambda$ to the level 1 if following rules are satisfied:
+(1) $N$ is a non-leaf node;
+(2) all the daughters of $N$ are leaf nodes;
+(3) the total number of points within all the cells $c\in N.block$ is less than a given parameter $M_{node}$.
+
+After this process, the complete-quadtree $QT$ is transformed into a PR-quadtree $\quadtree$. It can be easily seen that PR-quadtree satisfies the theorem~\ref{theo:Mnode}.
+
+\begin{theorem}\label{theo:Mnode}
+	Let $LN$ be any leaf node of $\quadtree$, the total number of points within all the cells $c\in LN.block$ is less than $M_{node}$.
+\end{theorem}
 
 
-\subsubsection{Global Grid}
+We define two operations for traversing PR-quadtrees: $findParent$ and $findDaughter$.
+\begin{definition}[findParent]\label{def:findParent}
+	Let $N=(nid,level,isLeaf)$ be a node of PR-quadtree $\quadtree$ where $level>0$, $findParent$ is a map from the node $N$ to another node $N_p$, where $N_p.level=N.level-1$ and $N_p.nid=\lfloor N.nid/4\rfloor$.
+\end{definition}
 
-\begin{figure}[t]
-	\centering
-	\includegraphics[width=\linewidth]{pdf/LinkTable.pdf}
-	\caption{Example of the global grid (left), the link table of cell-based trajectories (middle) and the data block corrsponding to the cells (right)}
-	\label{GlobalGrid}
-\end{figure}
+\begin{definition}[findDaughter]\label{def:findDaughter}
+	Let $N=(nid,level,isLeaf)$ be a node of PR-quadtree $\quadtree$ where $isLeaf=FALSE$, $findDaughter$ is a map from the node $N$ to a set of node $N_D$, in which all $N_d\in N_D$ satisfy: $N_d.level=N.level+1$ and $N.nid=\lfloor N.d/4\rfloor$.
+\end{definition}
 
-The fixed grid is widely used to partition trajectories on spatial attributes. In our framework, we also build a fixed grid called Global Grid $G$ to split the trajectories and serve as a part of index for trajectory query processing. The Global Grid $G=(mbr,C,\mathbb{D})$ contains $4^{\lambda}$ squared cells organized as figure \ref{GlobalGrid} shows, with there are $2^{\lambda}$ cells on each axis. Each cell $c=(mbr,cid,datablock)$ in $C$ is corresponding to a geographical area defined by a minimum bounding box $c.mbr$, and $c.cid$ is the identify of this cell, which is based on Morton-based encoding. Given a trajectory dataset, all the points of trajectories are assigned to the cells according to the coordinates, and points within a cell are stored nearby and packed as a data block in the memory. $c.datablock$ stores the starting offset of the points in this cell.
+From these two definitions, we can see that PR-quadtree can be traversed by binary shifting operations, which means the pointers among nodes are not neccessary when storing it, reducing the memory cost in implementation. For example, ...[give an example?]
 
-A cell-based trajectory table $CT$ is maintained for $G$ to recover the trajectories and generate the frequency vectors, which are important information of pruning unneccessary computation in top-k similarity query. The structure of $CT$ is shown in figure \ref{GlobalGrid}. Each trajectory $t_i\in \mathbb{D}$ corresponds to a head node $head_i$, and following a link table $L_i$ constructed to store the sequence of cells that a trajectory goes through, called \textit{cell-based trajectory}. In the node $n=(cid,num,offset)$ of $L_i$, the $cid$ of cell $c$ and the starting offset of the points in this trajectory in the $c.datablock$ are recorded in $n.cid$ and $n.offset$ respectively, while $num$ records the number of consecutive points belonging to trajectory $i$ from $offset$. After $CT$ is established, trajectories can be easily recovered from scattered data blocks in cells they go through. For example, for trajectory No.1 in figure \ref{GlobalGrid}, we go through the link table of it and a cell sequence of $[0,1,5]$ is got. Then from $offset$ value of nodes in the link table, the original trajectory can be recovered by jointing the points in corresponding data blocks.
+%PR-quadtree is a $4$-ary tree, where the root node represents the global grid. Each node $N$ in the tree has several attributes: the node level $l$ in the tree, the node id $nid$ within the level, and a binary label $isleaf$ indicating whether the node is leaf or not. Each node $N$ corresponds to a virtual block $B_N\subseteq\allcell$ containing a set of cells. A node $N$ can have $4$ child nodes if we split the block $B_N$ uniformly by two coordinates.
+%One can easily see that in PR-quadtree, (1) any two nodes following the ancestor-descendant relationship satisfy the spatial inclusive policy, i.e., $B_{N_1}\subseteq B_{N_2}$ iff $N_1$ is a descendant of $N_2$; (2) any cell in $\allcell$ belongs to exactly $1$ leaf node.
 
-The strength of Global Grid is that it can be used to solve the challenge of pruning for both range query and top-k similarity query. The pruning of range query can be finished by overlapping tests between query's MBR and cell's MBR. For top-k similarity query, the histogram method~\cite{DBLP:conf/sigmod/ChenOO05} providing lower bound of EDR can be applied if the Global Grid is built, which plays an important role in pruning strategy. In this histogram method, given the whole plane [$(x_{min},x_{max},y_{min},y_{max})$], it is divided into $\tau_{x}$ intervals in x axis and $\tau_{y}$ intervals in y axis, forming bins $\{(x_{i},x_{i+1},y_{j},y_{j+1})|1 \leq i\leq \tau_{x},1 \leq j\leq \tau_{y}\}$. For each bin, the number of points of each trajectory falling in the area of this bin is recorded. The trajectory histogram is then formed with all the bins. After that, the frequency distance between trajectories is defined on their histograms, which can generate a lower bound of EDR. This procedure is supported by the Global Grid. For example, in figure \ref{FreqGrid}, with the trajectory $t$ represented as line and sample points represented as points, a histogram is generated by counting the number of points in each cell, as the middle shows. The histogram information can be represented in grid like the right picture. Considering that fixed grid has been widely used as index in spatial database for range query, it is an valuable oppotunity that use fixed grid to deal with both two kinds of queries. 
-
-\begin{figure}[t]
-	%	\subfigure[Trajectory in grid]{
-	%		\includegraphics[width=0.9in]{pdf/Histo1}%
-	%		\label{TrajectoryInGrid}
-	%	}
-	%	\hfil
-	%	\subfigure[Histogram]{
-	%		\includegraphics[width=0.9in]{pdf/Histo2}%
-	%		\label{Histogram}
-	%	}
-	%	\hfil
-	%	\subfigure[Grid]{
-	%		\includegraphics[width=0.9in]{pdf/Histo3}%
-	%		\label{FreqGrid}
-	%	}
-	\centering
-	\includegraphics[width=\linewidth]{pdf/Histo.pdf}
-	\caption{Example of the trajectory in area (left), the histogram of this trajectory (middle) and the grid that can represent the histogram's value (right)}
-	\label{FreqGrid}
-\end{figure}
-
-\subsubsection{PR-Quadtree}
-For GPU-accelerated query processing, it is important to achieve load balancing under the heterogeneous distribution of trajectories. However, as most of works report, the fixed grid suffers from the unbalanced number of points in the cell. PR-quadtree~\cite{DBLP:conf/gis/LettichOS15} is an index used to handle streaming k nearest neighbor (kNN) queries for objects, achieving the load balancing on GPU. To reach this goal, we build a PR-quadtree $QT$ based on the Global Grid. 
-
-The node $N=(level,nid,isleaf)$ of $QT$ corresponds to the cells (or a cell) within the range $R$ depending on the $level$ and $nid$, while the root node $r=(0,0,isleaf)$ of $QT$ corresponds to the whole area. Like general quadtree, the cells whose $mbr$ are within the quadrants of $R$ are belonging to the daughters of non-leaf $N$, but a new rule is established that the number of points within $R$ not exceeds a threshold $M_{node}$. We note that each cell only belongs to one node because the constrain that there are totally $4^{\lambda}$ cells in $G$ has been created. Morton-based encoding is introduced to the $nid$ in each level, as figure \ref{Quadtree} shows.
-
-PR-quadtree benefits the pruning process for a series of reasons. Firstly, threshold $M_{node}$ guarantees the upper bound of the number of points in each node, which means that we can regard the node as the criteria for task division to achieve the load balancing. Secondly, the identifies of the descendants and the cells involved by the node can be easily computed owing to the Morton-based encoding, meaning that only some bit-wise operations are required to traverse between parent nodes and daughter nodes. For example, in case showed in figure \ref{Quadtree}, the parent of node $(2,15)$ is node $(1,3)$. This process is done by profroming a two-bits right shift on $1111(15)$, getting $11(3)$. With this property, the points within a node $N$ can be accessed instantly without scanning of all cells even if they are packed as the data block in the cells of $G$. Thirdly, the coalesce access pattern is possible to achieve. We can see by Morton-based encoding, the cells within the same node have a continuous identifies. Considering data blocks of these cells are organized nearby in the memory, they can be fetched and copied to GPU global memory with a continuous order as well. Then GPU is able to read the points in these data blocks in a coalesce access pattern and get high memory efficiency. 
-
-%However, because of the heterogeneous distribution of trajectories, the Global Grid suffers from problems of load balancing when used as the index for GPU-accelerated query processing, because the size of data blocks of each cell will vary largely. If we assign a cell containing too many sample points to a thread, the other threads assigned less number of points have to wait for this thread, which may hurt the speedup achieved in our framework.
-
-\begin{figure}[t]
-	%	\subfigure[Trajectory in grid]{
-	%		\includegraphics[width=0.9in]{pdf/Histo1}%
-	%		\label{TrajectoryInGrid}
-	%	}
-	%	\hfil
-	%	\subfigure[Histogram]{
-	%		\includegraphics[width=0.9in]{pdf/Histo2}%
-	%		\label{Histogram}
-	%	}
-	%	\hfil
-	%	\subfigure[Grid]{
-	%		\includegraphics[width=0.9in]{pdf/Histo3}%
-	%		\label{FreqGrid}
-	%	}
-	\centering
-	\includegraphics[width=\linewidth]{pdf/Quadtree_V3.pdf}
-	\caption{Example of the trajectory in area (left), the histogram of this trajectory (middle) and the grid that can represent the histogram's value (right)}
-	\label{Quadtree}
-\end{figure}
-
-%We adopt the idea of PR-quadtree~\cite{DBLP:conf/gis/LettichOS15} to overcome this challenge. PR-quadtree is an index used to handle streaming k nearest neighbor (kNN) queries for objects, achieving the load balancing on GPU. However, it can not serve for pruning of similarity query because nodes of PR-quadtree is not with the same geographical size. To apply the advantages of PR-quadtree to our system, we develope GT-quadtree based on fixed grid index by absorbing some useful features of PR-quadtree. It reaches the goal of achieving load balancing on GPU, and meanwhile remains the function of serving as the index of similarity query. In GT-quadtree, each node is corresponding to different number of cells of fixed grid, overlaping different area in geographical plane. As figure \ref{Quadtree} shows, %
-%
-%
-%the root is corresponding to the whole plane. Except for root, one and another levels of nodes are generated recursively by dividing areas of their parent into four quadrant to make sure the number of points within each node's area is all less than a user specified parameter $M_{cell}$. Also, if the number of points in a node is less than $M_{cell}$, it would not be divided anymore and regarded as leaf node. GT-quadtree is built based on fixed grid, with each leaf node containing all the cells of grid within its spatial area. Morton encoded identifiers are assigned to cells of fixed grid and nodes at different levels of GT-quadtree, as figure \ref{GTQuadtree} shows, noting that the node $i$ in $j$ level is represented as $(j,i)$. With the help of Morton encoding, we can traverse from a node to its parent within a bitwise operation in GT-quadtree and vice versa. For example, in case showed in figure \ref{GTQuadtree}, the parent of node $(2,4)$ in figure \ref{NodesL12} is $(1,1)$ in figure \ref{NodesL1}. This process is done by profroming a two-bits right shift on $100(4)$, getting $1(1)$. This feature of GT-quadtree benefits both range query and similarity query, which will be illustrated in Section V.
-%
-%%Moreover, operation judging whether two bins are adjacent, which is required in histogram pruning algorithm when doing similarity query, can be fastly finished with Morton encoding. Converting the identifier into binary, the odd number bits represent the x-coordinate and even number bits represent the y-coordinate. Figure xx shows an example,  
-%
-%\begin{figure}[t]
-%	\centering
-%	\subfigure[Morton encoding in level 1]{
-%		\includegraphics[width=0.25\linewidth]{pdf/GTTree1}%
-%		\label{NodesL1}
-%	}
-%	\hfil
-%	\subfigure[Morton encoding in level 1 and 2]{
-%		\includegraphics[width=0.25\linewidth]{pdf/GTTree2}%
-%		\label{NodesL12}
-%	}
-%	\hfil
-%	\subfigure[Morton encoding in grid of GT-quadtree]{
-%		\includegraphics[width=0.25\linewidth]{pdf/GTTree3}%
-%		\label{Grid}
-%	}
-%	\caption{An example of Morton encoded GT-quadtree}
-%	\label{GTQuadtree}
-%\end{figure}
-%
-%We designed sub-trajectories arrays storing the original geogrophical information of trajectories, making GT-quadtree meet with the memory access pattern required by GPU. Sub-trajectories array contains the sample points whose locations are within a given cell in GT-quadtree's fixed grid. These points are organized as the order of time. Meanwhile, points belong to the same trajectory are distributed together. For example, if there are sample points $\{p_{1,1},p_{1,2},...,p_{1,m}\}$ and $\{p_{2,5},p_{2,6},...,p_{2,n}\}$ from trajectory $t_{1}$ and $t_{2}$ in cell $15$, the content of sub-trajectories array of cell $15$ will be $\{p_{1,1},p_{1,2},...,p_{1,m},p_{2,5},p_{2,6},...,p_{2,n}\}$. This arrangement benifits the query performance because when the points of one cell are transferred into GPU they are located together in global memory, which satisfies the condition of coalesce accessing when GPU cores fetching data from global memory. With Morton encoding of identifiers of nodes, cells within the same node are stored continuously, indicating points within the same node are also stored continuously. \textbf{This benefit will be illustrated in detail when we introduce query engine. (Add a figure to illustrate this)}
-%
-%Operation of accessing to the whole trajectory is neccessary for similarity query based on global alignment. To satisfy this requirement, we create the cell-based trajectory list to obtain the whole trajectory with the help of sub-trajectories arrays and fixed grid of GT-quadtree. The list contains the cell-based trajectories, each of which is transformed from the original trajectory by recording all cells' identifiers it goes through as a sequence. For example, in figure \ref{GTQuadtree}, the trajectory can be transformed into its cell-based trajectory $[1,4,4,5,7,7,7]$. After this transformation, we can fetch the whole trajectory by reading the sample points from sub-trajectories array of cells in cell-based trajectory one after another. We can also generate the frequency vector of a trajectory quickly from corresponding cell-based trajectory, which plays an important role in pruning for similarity query.
-
+\noindent {\bf Benefits of \idxname}.
+% cell-based trajectory table can recover the whole trajectory and FV, which are very useful information when choosing candidates in similarity query
+(1) Cell-based trajectory table $S$ provides the cell-based trajectories, which is very useful when recovering whole trajectories from $\trajtable$ and calculating the lowerbound of EDR when running similarity query. For range query, $\trajtable$ stores trajectories according to the cells continuously, meaning that it is convenient to achieve coalesce access pattern during the refinement of candidates.
+% quadtree leads to the load balancing for range query
+(2) Through PR-quadtree, we can leverge theorem~\ref{theo:Mnode} to achieve a load balanced task division for range query processing, which is an important issue of improving the throughtput of GPU.
+% coalesce access pattern because of the continuous cells in a node
+(3) Also, according to theorem~\ref{theo:nodeToCell}, cells corresponding to the same node have continuous ID, so in $\trajtable$ the data of the points in these cells are nearby. This is benefical for achieving coalesce access pattern during the refinement on GPU.
 }
 
-\subsection{Construction of \idxname}
-As the index for the query on historical data, the index is constructed before all query processing starting. In this section, we illustrate the procedure of constructing the index. The procedure is shown in Algorithm 1.
+\noindent {\bf Benefits of \idxname}.
+There are three main benefits of \idxname.
+%
+(1) Cell-based trajectory table $\trajtable$ facilitates fast pruning of invalid trajectories for range queries and the computation of EDR lower bounds for similarity queries. And light-weight index $\trajindex$ enables fast reconstruction of trajectories.
+(2) In each cell, points from the same trajectory are stored continuously in $S$, which allows coalesce data access from main memory to global memory in GPU.
+(3) Quadtree-like index $\treeindex$ groups fine-grained cells into variant blocks. This grouping helps balance verification workloads on GPUs for range queries. 
 
+
+\noindent {\bf Space complexity.}
+We now discuss the space requirement of \idxname. 
+First, trajectory table $\trajtable$ contains all the trajectory points and hence the space cost of $S$ is $\bigoh(\sum_{T\in\alltraj}{|T|})$.
+Second, trajectory index $\trajindex$ maintains a vector of ($cid, offset, length$) triplets for each trajectory in $\alltraj$ and . Thus, the space cost of $\trajindex$ is $\bigoh(\sum_{T\in\alltraj}{|T|})$.
+Third, tree index $\treeindex$ contains at most $2\times 4^n$ nodes with the fields of ($l, nid, isLeaf$). Hence, the space cost of $\treeindex$ is $\bigoh(4^n)$.
+Totally, the space complexity of \idxname is $\bigoh(\sum_{T\in\alltraj}{|T|} + 4^n)$.
+In practice, $4^n\ll\sum_{T\in\alltraj}{|T|}$ and the total number of triplets in $\trajindex$ is much smaller than that of trajectory points. These two factors make the actual space requirement of \idxname close to the size of raw trajectories.
+Note that we do not need to keep raw trajectories as $\trajtable$ contains all the data. Hence, \idxname is space-efficient.
+
+\eat{
+Let $N_t$ and $L_t$ represent the number and the average length of trajectories in $\mathbb{D}$. Given the parameter $\lambda$ and the average number of points within in a cell for one trajectory $M_{cell}$, assuming in the worst situation that PR-quadtree is a complete quadtree, the memory cost of \idxname can be calculated as equation (4).
+
+\begin{equation}
+\begin{split}
+Cost(\idxname )=&4\times N_t\times L_t + 3\times \frac{L_t\times N_t}{M_{cell}}\\&+ 4^\lambda + 3\times \frac{4^\lambda -1}{3}
+\end{split}
+\end{equation}
+
+The first fraction is the cost of all data blocks, and four elements (longitude, latitude, timestamp and trajectory ID) need to be stored for a point. And it is also the cost of the raw trajectories. The second fraction represents the cost of cell-based trajectory table, because each node in it has three elements ($cid$, $number$, $offset$) and there are $\frac{L_t\times N_t}{M_{node}}$ nodes. In Global Grid, only an pointer of data block need to be stored, so the cost is $4^\lambda$. At last, there are $\frac{4^\lambda -1}{3}$ nodes in complete PR-quadtree, and in each node $level$, $id$ and $isLeaf$ are neccessary to be retained, so the last fraction represents the cost of PR-quadtree.
+
+From above analysis, we can see space requirements are much smaller than trajectory dataset itself at a proper configuration. For example, in a dataset containing 100,000 trajectories with average length of 800 in a range of $51.2km\times 51.2km$, $\lambda = 9$ (the length of cell side is 100m), and $M_{cell}=10$, we can find raw trajectories need 1280MB to be stored, while in our framework the total memory consumption is 99+1280MB.
+}
+
+\subsection{\idxname Construction}
 \begin{algorithm}[t]
 	\algsetup{linenosize=\tiny}
-	\scriptsize
+	\small
 	\caption{Index Construction}
 	\label{alg:constr_index}
 	\begin{algorithmic}[1]
 		\REQUIRE ~~\\
-		Dataset $\mathbb{D}$; Map Range $R_{map}$; parameters $M_{node}$, $\lambda$;
+		raw trajectories $\alltraj$, $n$, $\theta_p$;
 		\ENSURE ~~\\
-		Global Grid $G$; Cell-based Trajectory Table $CT$; PR-quadtree $QT$;
-		\STATE $G \leftarrow initGrid(R_{map},\lambda);$
-		\FOR{$t\in \mathbb{D}$}
-			\STATE $SEG \leftarrow splitTraj(t,G);$
-			\FOR{$s \in SEG$}
-				\STATE $cid \leftarrow getCID(s);$
-				\STATE $offset \leftarrow G.C[cid].insert(s.points);$
-				\STATE $CT[t.tid].insert([cid,offset]);$
-			\ENDFOR
+		$\trajtable$, $\trajindex$, $\treeindex$;
+		\FOR{$tid \in [1, |\alltraj|]$}
+		\STATE ${\cal M} \leftarrow $splitTraj($T, n$);
+		\FOR{$cid\in [1, 4^n]$}
+		\STATE $\trajindex[tid]$.insert($cid, \trajtable[cid].size(), |{\cal M}[cid]|$);				
+		\STATE $\trajtable[cid]\leftarrow \trajtable[cid]\cup {\cal M}[cid]$;
+		
 		\ENDFOR
-		\STATE $\eta \leftarrow size(G.C)$
-		\STATE $root \leftarrow initTreeNode(G.C,0,\eta -1);$
-		\STATE $buildTreeNode(root,0,0);$
-		\RETURN $G,CT,QT;$
-	\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[t]
-	\algsetup{linenosize=\tiny}
-	\scriptsize
-	\caption{buildTreeNode}
-	\label{alg:buildQT}
-	\begin{algorithmic}[1]
-		\REQUIRE ~~\\
-		node $N$; level $l$; id $id$, parameters $M_{node}$, $\lambda$;
-%		\ENSURE ~~\\
-%		node $nd$;
-		\STATE $N \leftarrow initNode(l,id);$
-		\STATE $N.isLeaf \leftarrow TRUE;$
-		\STATE $cnt \leftarrow countPoint(l,id);$
-		\IF{$(cnt \leq M_{node})\&\&(l < \lambda)$}
-			\STATE $\Gamma \leftarrow geneCellSet(N);$
-			\STATE $\eta \leftarrow size(\Gamma )$
-			\FOR{$i = 0 ~to~ 3$}
-				\STATE $N_{des} \leftarrow initTreeNode(\Gamma ,\Gamma[0].cid+\frac{\eta}{4}i,\frac{\eta}{4});$
-				\STATE $buildTreeNode(N_{des},l+1,(id << 2)+i);$
-				\STATE $nd.daughters.insert(N_{des});$
+		\ENDFOR	
+		%		
+		\STATE $QT\leftarrow $buildFullQuadTree($n$);
+		\FOR{$l=n$ to $0$} 
+			\STATE $terminate\leftarrow True$;
+			\FOR{$nid=0$ to $4^l-1$}
+			\STATE $N\leftarrow $getNode($QT, l,nid$);
+			\IF{$|\phi_p(N)| < \phi_p$}
+				\STATE $terminate\leftarrow False$;
+				\STATE pruneChildren($QT, N$);
+				\STATE $N.isLeaf\leftarrow True$;
+			\ENDIF
 			\ENDFOR
-			\STATE $N.isLeaf \leftarrow FALSE;$
-		\ENDIF
-		% \STATE $return ~nd;$
-		\RETURN
-
+			\IF{$terminate=True$}
+				\STATE break;
+			\ENDIF
+		\ENDFOR
+		\STATE $\treeindex\leftarrow QT$;
+		%		\FOR{$T\in \alltraj$}
+		%			\STATE $SEG \leftarrow splitTraj(t,\allcell)$
+		%			\FOR{$s \in SEG$}
+		%				\STATE $cid \leftarrow getCID(s)$
+		%				\STATE $offset \leftarrow \allcell[cid].insert(s.points)$
+		%				\STATE $\trajtable.L[t.tid].insert(triplet(cid,length(s),offset))$
+		%			\ENDFOR
+		%		\ENDFOR
+		%		\STATE $QT \leftarrow buildCompQuadTree(\allcell,\lambda,\trajtable)$
+		%		\FOR{$level$ from $\lambda-1$ to $0$}
+		%			\FOR{$nid$ from $0$ to $4^{level}-1$}
+		%				\STATE $merge(locateNodeInQuadTree(level,nid))$
+		%			\ENDFOR
+		%		\ENDFOR
+		%		\STATE $\quadtree \leftarrow QT$
+		%		\RETURN $\trajtable,\quadtree$
 	\end{algorithmic}
 \end{algorithm}
 
-Given a dataset, the Global Grid $G$ and Cell-based Trajectory $CT$ are firstly generated. We firstly build a squared-grid of $4^{\lambda}$ cells which fully covers the range of map $R_{map}$. After that, trajectories in the dataset are split into a set of segments $SEG$ according to $G$ and Cell-based Trajectory Table $CT$ is initialized and maintained. For each trajectory, a segment $s\in SEG$ contains points within the same cell $c$, and they are inserted into the data block of $c$. Meanwhile, a node $(cid,offset)$ is added into the $CT$, where $cid$ is the identify of $c$ and $offset$ is the offset of the first point of $s$. After processing all trajectories, the construction of $G$ and $CT$ is finished.
 
-In next step the PR-quadtree is built based on $G$. Firstly the root node $root$ of $G$ is initialized with $level=0$ and $cid=0$, linking to all cells of $G$. The descendant nodes of $root$ are generated recursively with the rule that the number of points within the node not exceed $M_{cell}$, whose procedure is shown in algorithm \ref{alg:buildQT}. During generating descendant node $N_{des}$ of $N$, the cells in four quandrants of $N$ are divided into four sets, then they are linked to four daughters respectively. (line 5 - 8) Owing to the Morton-based encoding, $level$ and $cid$ can be directly computed, which are used to locate and insert $N_{des}$ into $QT$. (line 9) If $N_{des}$ has daughters, it is marked as a non-leaf node, and finally all leaf nodes in $QT$ contain less than $M_{node}$ points in the data blocks of their linked cells.
+Algorithm~\ref{alg:constr_index} provides the details of constructing \idxname.
+To compute $\trajtable$ and $\trajindex$, we traverse all the trajectories in $\alltraj$ (line $1$).
+Given a trajectory $T$, we first assign each point in $T$ to the corresponding covering cell (line $2$).
+We then traverse the cells. For each cell, we append a triplet to $\trajindex[T.tid]$ recording the information that $T$ contains $|{\cal M}[cid]|$ points in cell $cid$ (line $4$), and update $\trajtable$ with the points from $T$ (line $5$). 
 
-\subsection{Space Requirements}
-Let $N_t$ and $L_t$ represent the number and the average length of trajectories in $\mathbb{D}$. Given the parameter $\lambda$ and the average number of points within in a cell for one trajectory $M_{cell}$, assuming in the worst situation that PR-quadtree is a complete quadtree, the memory cost of \idxname can be calculated as equation (4).
+Next, we construct a complete quadtree $QT$ (line $8$) and perform a bottom-up pruning to obtain $\treeindex$ (line $9$-$23$). We start from the nodes in the deepest level of $QT$ (line $9$). If the cells covered by a node $N$ contain less than $\theta_p$ points, we prune its child nodes in $QT$ (line $15$) and mark $N$ as a leaf node (line $16$). The process is repeated from level $n$ to level $0$ of $QT$ and we perform early termination if no pruning is conduct in a certain level (line $19$-$21$).
 
-\begin{equation}
-	\begin{split}
-		Cost(\idxname )=&4\times N_t\times L_t + 3\times \frac{L_t\times N_t}{M_{cell}}\\&+ 4^\lambda + 3\times \frac{4^\lambda -1}{3}
-	\end{split}
-\end{equation}
 
-The first fraction is the cost of all data blocks, and four elements (longitude, latitude, timestamp and trajectory ID) need to be stored for a point. And it is also the cost of the raw trajectories. The second fraction represents the cost of cell-based trajectory table, because each node in it has three elements ($cid$, $offset$, $N_p$) and there are $\frac{L_t\times N_t}{M_{cell}}$ nodes. In Global Grid, only an pointer of data block need to be stored, so the cost is $4^\lambda$. At last, there are $\frac{4^\lambda -1}{3}$ nodes in complete PR-quadtree, and in each node $level$, $id$ and $isLeaf$ are neccessary to be retained, so the last fraction represents the cost of PR-quadtree.
+%As the index for the query on historical data, the index is constructed before all query processing starting. In this section, we illustrate the procedure of constructing the index. The procedure is shown in Algorithm 1.
+%
+%Cell-based Trajectory Table $\trajtable$ is built during building global grid $\allcell$. Trajectories in the dataset are split into a set of segments $SEG$ according to $\allcell$. For each trajectory whose ID is $tid$, a segment $s\in SEG$ contains points within the same cell $C$, and they are inserted into $P(C)$. Meanwhile, a triplet $(cid,num,offset)$ is appended into the $L_{tid}$, where $cid$ is the identify of $C$, $num$ is the length of $s$ and $offset$ is the offset of the first point of $s$ in $P(\allcell)$. After processing all trajectories, the construction of $\trajtable$ is finished.
+%
+%In next step we construct the PR-quadtree. Firstly a complete-quadtree $QT$ is built based on $\allcell$.
+%The root node $root$ of $QT$ is initialized with $level=0$ and $cid=0$, corresponding to all cells of $\allcell$ in $block$. The descendant nodes of $root$ are generated recursively, whose procedure is shown in algorithm \ref{alg:buildQT}. During generating descendant node $N_{des}$ of $N$, the cells in four quandrants of $N$ are divided into four sets, then they are inserted to the $block$ of four daughters respectively. (line 5 - 8) According to the Definition~\ref{def:findDaughter}, $level$ and $cid$ can be directly computed, which are used to locate and insert $N_{des}$ into $QT$. (line 9) If $N_{des}.level$ is equal to $\lambda$, it will be set as a leaf node and the daughters will not be generated, and in this situation there is only one cell in $N_{des}.block$.
+%
+%After all descendant nodes of $QT$ are generated, the merge operations are performed to nodes of $QT$ from level $\lambda-1$ to level 0. Then the construction of PR-quadtree $\quadtree$ is finished.
 
-From above analysis, we can see space requirements are much smaller than trajectory dataset itself at a proper configuration. For example, in a dataset containing 100,000 trajectories with average length of 800 in a range of $51.2km\times 51.2km$, $\lambda = 9$ (the length of cell side is 100m), and $M_{cell}=10$, we can find raw trajectories need 1280MB to be stored, while in our framework the total memory consumption is 99+1280MB.
+
  
 %Storage component construction starts initially with an empty fixed grid covering the whole spatial plane. We first set the length of each cell is set to $m$ times of specified noise threshold of EDR distance $\epsilon$. It make the cell equivelent as two-dimensional bin. Then we build a grid containing $4^{m}$ cells, to guarantee that we can build a quadtree on it. Identifiers of cells are assigned according to the rule of Morton encoding, as figure \ref{Grid} shows.
 %
@@ -779,7 +801,7 @@ To get a better usage of GPU under these issues, we design a series of strategie
 
 \begin{algorithm}[t]
 	\algsetup{linenosize=\tiny}
-	\scriptsize
+	\small
 	\caption{Range Query}
 	\label{alg:RQ}
 	\begin{algorithmic}[1]
@@ -813,7 +835,7 @@ Similar to the most of works about range query, we use a filter-and-refine schem
 In this phase a set of query ranges $R_Q$ are input. Then for each query range $R_q$, a set of candidate points $Cand_q$ are transferred to global memory, waiting for verifying in the refinement phase.
 
 \begin{figure}[!t]\centering
-	\scriptsize{
+	\small{
 		\begin{minipage}{0.48\linewidth}
 			\centering
 			\includegraphics[width=\linewidth]{pdf/MBR_lv2.pdf}
@@ -889,28 +911,36 @@ We analyse the complexity of our approach of range query. Given the length of a 
 	\end{split}
 \end{equation}
 
-CPU????
+% should I analysis the cost on CPU? It's obvious.
 
 \subsection{Top-k Similarity Query}
 
-Given a set of query trajectories $Q_t$, the goal of the top-k similarity query is retrieve k closest trajectories measured by EDR for each $t_q\in Q_t$. The FDs between $t_q\in Q_t$ and trajectories $t_d\in \mathbb{D}$ are firstly calculated as the lower bound of EDR, then we iterate between generating candidates and calculating real EDRs in batch, until no candidates can be generated according to the FDs and the real EDRs. The algorithm is shown in Algorithm~\ref{alg:TSQ_1}.
+Given a query trajectory $T_q$, the goal of the top-k similarity query is retrieve k closest trajectories $\simq(T_q)$ measured by EDR. The FDs between $T_q$ and trajectories $T_d\in \alltraj$ are firstly calculated as the lower bound of EDR, then we iterate between generating candidates and calculating real EDRs in batch, until none of the candidate trajectories in current iteration has lower possible EDR value than the trajectories whose EDRs have been calculated. The algorithm is shown in Algorithm~\ref{alg:TSQ_1}.
 
 \subsubsection{Frequency Distance Calculation}
 
-In this component, we firstly use cell-based trajectory table $CT$ in \idxname to generate the frequency vectors (FV) of $t_q$ and $t_d$, which indicate the number of points within each cell for a trajectory. For a trajectory $t_i$ whose cell-based trajectory $L_i$ has $m$ nodes, we maintain an length-$m$ array $V_{freq}$ and initialize it to all-zero firstly. Then, we get the sequence of cells from $L_i$, and for each node $(cid,num,offset)$ we add $num$ to the cid-th value of $V_{freq}$. After processing the whole $L_i$, the array $V_{freq}$ becomes the FV of trajectory $t_i$. The FV of $t_q$ and $t_d$ can be generated by this method, and then the FD between them are calculated by CompHisDist algorithm\cite{DBLP:conf/sigmod/ChenOO05} with linear complexity.
+In this component, we firstly use cell-based trajectory table $CT$ in \idxname to generate the frequency vectors (FV) of $T_q$ and $T_d$, which indicate the number of points within each cell for a trajectory. For trajectory $T_d\in \alltraj$, because the node in $L_d\in CT$ has a value $num$ storing the number of points belonging to trajectory $T_d$ within each cell, through a scan in $L_d$ we can get its FV $FV_d$. This step can be performed during offline pre-processing, because FVs of $T\in \alltraj$ will be reused many times during large-scale similarity query. For query trajectory $T_q$, owing to the Morton-based encoding of Global Grid, given the point sequence of $T_q$ including coordinates, the identifies of cells that the points reside in can be computed using method shown in figure x. So, we can generate FV $FV_q$ easily as well.
+
+After $FV_q$ and $FV_d$ are generated, the FD $FD(FV_q,FV_d)$ between them can be calculated by CompHisDist algorithm\cite{DBLP:conf/sigmod/ChenOO05} with linear complexity. According to the Theorem~\ref{theo:LB}~\cite{DBLP:conf/sigmod/ChenOO05}, $FD(FV_q,FV_d)$ is the lower bound of $EDR(T_q,T_d)$.
+
+\begin{theorem}\label{theo:LB}
+	Let $T_r$ and $T_s$ be two trajectories, $FV_r$ and $FV_s$ be the frequency vector of $T_r$ and $T_s$ respectively. We have $FD(FV_r,FV_s)\leq EDR(T_r,T_s)$.
+\end{theorem}
+
+% For a trajectory $t_i$ within the corresponding cell,  whose cell-based trajectory $L_i$ has $m$ nodes, we maintain an length-$m$ array $V_{freq}$ and initialize it to all-zero firstly. Then, we get the sequence of cells from $L_i$, and for each node $(cid,num,offset)$ we add $num$ to the cid-th value of $V_{freq}$. After processing the whole $L_i$, the array $V_{freq}$ becomes the FV of trajectory $t_i$. The FV of $t_q$ and $t_d$ can be generated by this method, and then the FD between them are calculated by CompHisDist algorithm\cite{DBLP:conf/sigmod/ChenOO05} with linear complexity.
+
+
 
 \subsubsection{Candidate Generation}
 
-Based on the FD between $t_q$ and all $t_d\in \mathbb{D}$, we generate the candidates which are likely to be the one of top-k closest trajectories of $t_q$ in every loop and then invoke GPU to calculate the real EDR between $t_q$ and them to reduce the times of complex EDR calculation.
+Based on the FD between $T_q$ and all $T_d\in \alltraj$, we generate the candidates which are likely to be the one of top-k closest trajectories of $T_q$ in every loop and then invoke GPU to calculate the real EDR between $T_q$ and them to reduce the times of complex EDR calculation.
 
-We use a xxx scheme in the process of candidate generation to make sure that no trajectories which are probable to be one of the results are omitted. We firstly maintain a priority queue $FDPQ$ for each $t_q$ to store the FDs between $t_q$ and all trajectories of $\mathbb{D}$, with all calculated FDs together with the trajectory ID added into it. Then, in each iteration, different from traditional xx scheme which chooses one candidate once, we extract $l>1$ trajectories whose FDs are the smallest as a candidate set $Cand_q$ waiting for calculating real EDR, because in traditional situation the scale of candidates is small, while GPU can only get a remarkably high speedup under a large number of tasks. After $Cand_q$ is extracted, the trajectories in it are recovered by $CT$ and transferred into global memory of GPU, together with the information about $t_q$ and some parameters such as $\epsilon$ needed in the calculation of EDR. At the end of this iteration, for all $t_q$, the tasks of calculating EDR between each $t_d\in Cand_q$ and corrsponding $t_q$ are uniquely assigned to CUDA blocks. 
-
-\subsubsection{GPU-accelerated EDR calculation}
+We use a xxx scheme in the process of candidate generation with the lowerbound FD to make sure that no trajectories which are probable to be one of the results are omitted. We firstly maintain a priority queue $FDPQ$ to store the FDs between $T_q$ and all trajectories of $\alltraj$, with all calculated FDs together with the trajectory ID added into it. Then, in each iteration, different from traditional xx scheme which chooses one candidate once, we extract $l>1$ trajectories whose FDs are the smallest from $FDPQ$ to a candidate set $Cand_q=(T_{c},T_q)$ waiting for calculating real EDR, because in traditional situation the scale of candidates is small, while GPU can only get a remarkably high speedup under a large number of tasks. After $Cand_q$ is extracted, the candidate trajectories $T_{c}$ in it are recovered with the help of $CT$ form cell-based trajectory table and transferred into global memory of GPU, together with the information about $T_q$ and some parameters such as $\epsilon$ needed in the calculation of EDR. At the end of this iteration, the tasks of calculating EDR between each $T_c$ and corrsponding $T_q$ are uniquely assigned to CUDA blocks. 
 
 
-The goal of the top-k similarity query is generating the result of top-k similarity queries in a short time, leveraging the parallel power of GPU. We use EDR as the similarity measurement, which is popular and performs well in most of recent works. ~\cite{EDWP15}[] Our work can be migrated to other measurements whose calculation is based on dynamic programming algorithm, such as LCSS~\cite{DBLP:conf/icde/VlachosGK02}. However, considering that GPU efficiency is low if the task load is small, it is suboptimal to directly migrate algorithm proposed by ~\cite{DBLP:conf/sigmod/ChenOO05} to GPU, because this algorithm execute only one EDR calculation after a filter phase. As a solution, we adapt this algorithm to fit with GPU architecture and design a new filter and refine scheme, which is shown in Algorithm \ref{alg:TSQ_1}. The initial idea of this scheme is filtering some trajectories which can be assured not appearing in the result to avoid unnecessary expensive EDR computing. 
 
-First, for each query, we use cell-based trajectories to calculate the lower bounds of EDR between query trajectory and trajectories in storage and add all trajectories to candidate set (line 3-5). After that, we find $\eta$ trajectories from candidate set whose lower bounds are the lowest, calculating the real EDR between query trajectory. Obtaining the upper bound of current top-k EDR distance of trajectories efficiently is a frequent operation for pruning, so a size-k priority queue of real EDR distance is maintained to handle this operation. (line 7-8). We then prune trajectories in candidate set whose lower bound is bigger than upper bound of current top-k EDR distance safely because we can assure they will never be chosen in following iterations (line 9). We repeat this process of choosing top-$\eta$ trajectories from candidate set and pruning until candidate set is empty. Finally trajectories in the priority queue are results of this top-k similarity query.
+
+
 
 \begin{algorithm}[t]
 	\algsetup{linenosize=\tiny}
@@ -919,27 +949,51 @@ First, for each query, we use cell-based trajectories to calculate the lower bou
 	\label{alg:TSQ_1}
 	\begin{algorithmic}[1]
 		\REQUIRE ~~\\
-		Query Trajectory Set $Q=\{ q_{1},q_{2},...,q_{M}\}$; Historical Trajectory Data $D=\{ d_{1},d_{2},...,d_{N}\}$; Parameter $k$,$\eta$;
+		trajectory dataset $\mathbb{D}$; Query trajectory set $T_q=\{t_{q_i}|0\leq i< size(T_q)\}$; Global Grid $G$; Cell-based Trajectory Table $CT$; k value $k$; EDR parameter $\epsilon$;
 		\ENSURE ~~\\
-		Result list for each query $Result$
-		\STATE $Result \leftarrow list(array[k])$
-		\FOR{$q\in Q \ \textbf{parallelly}$}
-		\STATE $LB \leftarrow GenerateLowerBoundParallel(q,D)$
-		\STATE $realEDR \leftarrow InitialPriorityQueue()$
-		\STATE $candidateSet \leftarrow D$
-		\WHILE{$candidateSet$ is not empty}
-		\STATE $simiTrajID \leftarrow ChooseSmall(LB,\eta)$
-		\STATE $realEDR \leftarrow CalEDRParallel(simiTrajID)$
-		\STATE $candidateSet \leftarrow FiltParallel(max(realEDR),$\\$candidateSet,LB)$
-		\ENDWHILE
-		\STATE $Result[q] \leftarrow realEDR.topID(k)$
+		Top-k Result $Result_{T_q}=\{result_i|0\leq i< size(T_q),result_i=\simq(t_{q_i})\}$
+		\FOR{$i\in [0,size(T_q)-1]$ \textbf{parallelly}}
+			\STATE $Vq_{freq}\leftarrow generateFVFromTraj(t_{q_i})$
+			\STATE $FDPQ_q\leftarrow initPriorityQueue()$
+			\STATE $EDRPQ_q\leftarrow initPriorityQueue()$
+			\FOR{$L_j \in CT$}
+				\STATE $V_{freq_j}\leftarrow generateFV(CT.L_j)$
+				\STATE $FDPQ_i.push(j,calculateFD(V_{freq_j},Vq_{freq}))$
+			\ENDFOR
 		\ENDFOR
+		\STATE $isFinished \leftarrow initArray(FALSE,size(T_q))$
+		\WHILE{$isFinishe~is~not~all~TRUE$}
+			\STATE $candPair=[]$
+			\FOR{$i\in [0,size(T_q)-1]~AND~(!isFinished[i])$ \textbf{parallelly}}
+				\STATE $Cand_q\leftarrow popLowest(FDPQ_i)$
+				\FOR{$key\in Cand_q$}
+					\STATE $t_{key}\leftarrow recoverTraj(L_{key},G)$
+					\STATE $candPair.insert(key,i)$
+					\STATE $transferTrajtoGPU(t_{key})$
+				\ENDFOR
+				\STATE $transferTrajtoGPU(t_{q_i})$
+			\ENDFOR
+			\STATE $EDR_{result}\leftarrow calculateEDRbyGPU(candPair,\epsilon)$
+			\FOR{$result\in EDR_{result}$}
+				\STATE $qID\leftarrow result.qid$
+				\STATE $EDRPQ_{qID}.push(result.tid,result.EDR)$
+				\STATE $isFinished[qID]\leftarrow checkFinish(FDPQ_{qID},EDRPQ_{qID})$
+			\ENDFOR
+		\ENDWHILE
+		\RETURN $EDRPQ.popLower(k)$
 	\end{algorithmic}
 \end{algorithm}
 
+\eat{
+The goal of the top-k similarity query is generating the result of top-k similarity queries in a short time, leveraging the parallel power of GPU. We use EDR as the similarity measurement, which is popular and performs well in most of recent works. ~\cite{EDWP15}[] Our work can be migrated to other measurements whose calculation is based on dynamic programming algorithm, such as LCSS~\cite{DBLP:conf/icde/VlachosGK02}. However, considering that GPU efficiency is low if the task load is small, it is suboptimal to directly migrate algorithm proposed by ~\cite{DBLP:conf/sigmod/ChenOO05} to GPU, because this algorithm execute only one EDR calculation after a filter phase. As a solution, we adapt this algorithm to fit with GPU architecture and design a new filter and refine scheme, which is shown in Algorithm \ref{alg:TSQ_1}. The initial idea of this scheme is filtering some trajectories which can be assured not appearing in the result to avoid unnecessary expensive EDR computing. 
+
+First, for each query, we use cell-based trajectories to calculate the lower bounds of EDR between query trajectory and trajectories in storage and add all trajectories to candidate set (line 3-5). After that, we find $\eta$ trajectories from candidate set whose lower bounds are the lowest, calculating the real EDR between query trajectory. Obtaining the upper bound of current top-k EDR distance of trajectories efficiently is a frequent operation for pruning, so a size-k priority queue of real EDR distance is maintained to handle this operation. (line 7-8). We then prune trajectories in candidate set whose lower bound is bigger than upper bound of current top-k EDR distance safely because we can assure they will never be chosen in following iterations (line 9). We repeat this process of choosing top-$\eta$ trajectories from candidate set and pruning until candidate set is empty. Finally trajectories in the priority queue are results of this top-k similarity query.
+	
+	
 There is some challenges of performance in our proposed algorithm 1. In the most setting in actual situation, the number of cells are usually large, making the computation of lower bound a time-consuming process. For example, in Shanghai private cars dataset, an area of $45\times 55 km^{2}$ is divided into $247500$ cells, if threshold $\epsilon$ in EDR is set as $100m$. Besides, although through filtering, massive expensive EDR computations are still neccessary to execute. Attention that the computation cost of EDR between two trajectories is O($mn$)(m is the length of trajectory 1 and n is the length of trajectory 2), an efficiency issue arises as the length of trajectories become longer. 
 
 To overcome these challenges, we use GPU to accelerate EDR calculation with GT-quadtree. However, this migration is not trivial because of the special architecture and programming model of GPU. Aiming to overcome these challenges and get better performance, we will introduce our strategies and implementation in detail at following part of this section.
+
 
 \subsubsection{Lower Bound Generation}
 % candidate set and priority queue, calculate lower bounds in parallel.
@@ -954,58 +1008,52 @@ The lower bound of EDR can be derived from cell-based trajectories. This process
 Although the calculation cost of FD is lower than EDR, it still spends lots of time. There are two reasons. One is there are lots of trajectories in storage and for each of them an FD should be calculated. The other is if a small $\epsilon$ is set by user, the length of FV will be very long, causing even one FD is also computational cost. Aiming to these two issues, we proposed the strategies respectively. Firstly, widely used multicore CPU allows us to distribute the FD computation workload of all queries to different cores evenly, and then the calculation of all FD can finish in shorter time because the tasks are divided. Secondly, for the FD computation in each query, inspired by a solution proposed in ~\cite{DBLP:conf/sigmod/ChenOO05}, we build a virtual grid, in which the length of cell is larger than that of GT-quadtree's fixed grid, to reduce the length of FVs. It is trivial to execute FD calculation of different queries by using multithreading technology, so we then introduce the virtual grid in detail. 
 
 The virtual grid can be seen as all of nodes in one layer of GT-quadtree. Figure \ref{fig:VirtualGrid} is an example: a virtual grid with 4 cells is built based on a fixed grid with 16 cells. Chen~\cite{DBLP:conf/sigmod/ChenOO05} has proved that FD is still the lower bound of EDR as long as the length of cell in grid is the multiple of $\epsilon$, no matter how large it is. So, if we use the virtual grid to calculate FD, the cost of computation will decrease. Owing to the Morton encoding of GT-quadtree, the virtual grid can be used without the requirement of extra memory consumption, because we can directly get which cell in the virtual grid contains a given point and then generate FVs. For example, in figure \ref{fig:VirtualGrid}, the original FV of the trajectory can be simplified into [1,5,0,0], whose length is decreased from 16 to 4, just by a transformation implemented by right shifting. However, it should also be pointed out that a tradeoff should be found between too large and too small cells because the larger cells are, the looser bound is. We set a parameter called VC permitting the configuration of this tradeoff, which indicates how many right shifting operations are performed to get the transformation from original FV to simplified one in virtual grid. In above example, the VC parameter is 2.
+}
 
-
-
-%Algorithm 2 shows the procedure of generate FD on multicore CPU. Firstly we calculate the difference between two FVs (line 1-3) in parallel. Considering the adjacent case in edit distance calculation mentioned, we reduce the difference if two elements are neighbor cell in grid of GT-quadtree (line 4-12). Given an Morton encoded cell ID, its neighbors' ID can be generated in several cheap bitwise operations by thread of GPU. Finally, FD is calculated from the difference of two FVs by a parallel addition and comparison (line 13-17). With strategy that in each parallelly loop almost an equal number of elements are assigned to each thread in an sequencial increasing order, our algorithm achieves thread level load balancing and coalesce accessing pattern. It is worth noting that this process is also load balancing in task level because all FVs have the same number of elements.
-%
-%\begin{algorithm}[htb]
-%	\caption{GenerateLowerBound}
-%	\label{alg:GetLB}
-%	\begin{algorithmic}[1]
-%		\REQUIRE ~~\\
-%		Frequency Vector of query trajectory $qFV=[qFV_{1},qFV_{2},...]$;
-%		
-%		FV of the trajectory in task $tFV=[tFV_{1},tFV_{2},...]$;
-%		
-%		Number of cells $N_{cell}$;
-%		\ENSURE ~~\\
-%		Frequency Distance between $qFV$ and $tFV$: $FD$
-%		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
-%		\STATE $dFV[i] \leftarrow qFV[i]-tFV[i]$
-%		\ENDFOR
-%		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
-%		\FOR{each $j$ adjacent to $i$}
-%		\IF{the sign of $dFV[j]$ and $dFV[i]$ are different}
-%		\STATE $x \leftarrow min(|dFV[i]|,|dFV[j]|)$
-%		\STATE $dFV[i] \leftarrow dFV[i] + ((dFV[i]>0)-0.5)*2$
-%		\STATE $dFV[j] \leftarrow dFV[j] + ((dFV[j]>0)-0.5)*2$
-%		\ENDIF
-%		\ENDFOR
-%		\ENDFOR
-%		\FOR{each $i<=N_{cell}$ \textbf{parallelly}}
-%		\STATE $positive \leftarrow positive+(dFV[i]>0)*dFV[i]$
-%		\STATE $neagtive \leftarrow negative+(dFV[i]<0)*dFV[i]$
-%		\ENDFOR
-%		\STATE $FD \leftarrow max(positive,negative)$
-%	\end{algorithmic}
-%\end{algorithm}
-
-\subsubsection{Parallel EDR Calculatation}
+\subsubsection{GPU-accelerated EDR calculation}
 % introduce how to calculate EDR in parallel on GPU
 % include different size strategy, task generation, data transferring and data arrangement.
-After generating lower bound and pruning, a mass of EDR calculations tasks are waited for executing. Each EDR calculation takes in two inputs trajectories $traj_1$ and $traj_2$, and output the EDR distance between them. For executing massive EDR calculations in parallel, the key is to finding an approach of dividing the each calculation process into independent sub-processes.  
+After generating lower bound FD and candidate generation, a mass of EDR calculations tasks $et=(d,q)$ are waited for executing. Each EDR calculation takes in two inputs trajectories $traj_{d}$ and $traj_q$, and output the EDR distance between them. For executing massive EDR calculations in parallel, the key is to finding an approach of dividing the each calculation process into independent sub-processes. Considering the strong independence among the task of different $traj_d$, we assign an EDR calculation taks to each CUDA block in block-level. Another benefit of this block-level division is that we can use low-latency local memory to store some frequently reused information such as points of trajectory within each task, which is helpful for improving throughtput. 
 
-We designed an iterative framework for parallel EDR calculation. The EDR calculation, which is acutually a dynamic programming, can be divided into several independent steps of comparisons. Figure \ref{fig:DPstate} shows an example of calculating the EDR ?between two trajectorie $traj_1$ and $traj_2$ with length $m$ and $n$. Each value in a state (represented as $state[i][j]$) is calculated by comparing and choosing the minimun value of $\{state[i-1][j]+1,state[i][j-1]+1,state[i-1][j-1]+subcost\}$, according the definition of EDR in section 2. After all the states have been calculated, the $state[m][n]$ is the EDR between two trajectories. If we use slashes to group the states, we notice that the values of states in one slash rely on the value of states in two upper left slashes. For example, in figure \ref{fig:DPstate}, if we want to calculate the states on slash 3, the states on slash 1 and slash 2 are needed. Meanwhile, comparing operations within a slash have no relationship, inspiring us to invoke the calculations within the same slash in parallel, forming the basic idea of our solution.
-
-Based on this framework, we propose a procedure of calculating EDRs in parallel on GPU, as algorithm \ref{alg:EDR} shows, whose implement is based on CUDA. Given a set of EDR calculation tasks, we first assign each of them to a block to make GPU full-loading, in order to improve the throughtput(line 1-2). In each block, the values of states are calculated in $(2\times max\{m,n\}+1)$ loops from $state[0][0]$ to $state[m][n]$ slash by slash (line 10). For example, in figure \ref{fig:DPstate}, state on slash 1 is generated, and then slash 2, slash 3, ..., until the slash $(2m+1)$. In each loop data on two before slashes are stored in high-speed local memory of each SM, which is allocated before starting loops (line 6), because they will be frequently accessed by threads. Noting that the length of trajectory is almost smaller than 2048, it is enough for space of local memory to store these data. As for the state matrix of this calculation, we store them according to the order of slash, as figure \ref{fig:DPstate} shows. In this case, the data required by threads are nearby, assuring the coalesce accessing pattern.
-
-
+% firstly introduce traditional computation method, then point out problem and propose our approach
+The original procedure of EDR calculation is similar to that of classical edit distance, according to the defination of EDR which is given in defination~\ref{def:edr}. A state matrix $S$ is maintained, and $S[i][j]$ is calculated by comparing and choosing the minimun value of $\{S[i-1][j]+1,S[i][j-1]+1,S[i-1][j-1]+subcost\}$. The elements of $S$ are calculated line by line and after all the elements have been calculated, the $S[m][n]$ is the EDR between two trajectories. However, in this procedure, there is a strong relationship amont calculation steps, which means that they cannot be directly mapped to the threads in the CUDA block. For example, when we calculate the states in line 3, $S[3][3]$ is relational to $S[3][2]$.
+\eat{
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=0.48\linewidth]{pdf/DPstate.pdf}
 	\caption{An example of EDR calculation procedure\label{fig:DPstate}}
 \end{figure}
+}
+
+\begin{figure}[t]
+	\centering
+	\scriptsize{
+		\begin{minipage}{0.34\linewidth}
+			\centering
+			\includegraphics[width=\linewidth]{pdf/StateMatrixDP_V2.pdf}
+			(a) Relationship between states on different slashes 
+		\end{minipage}
+		\hfill
+		\begin{minipage}{0.62\linewidth}
+			\centering
+			\includegraphics[width=\linewidth]{pdf/EDR_fetch.pdf}
+			(b) Location of data each thread reads and writes
+		\end{minipage}
+	}
+	\caption{An example of EDR calculation procedure\label{fig:EDR}}
+\end{figure}
+
+To solve this problem, we analyse the data dependency of original calculation procedure, finding that if we group the states on the same slash together in state matrix, the value of every state only relies on the states of the last two slashes, and meanwhile the calculations of states in the same slash are independent. Figure \ref{fig:EDR}(a) shows an example. When we calculate the states 7, 8, 9 and 10 on slash 4, only the states 4, 5, 6 on slash 3 and states 2, 3 on slash 2 are needed. 
+
+Based on this observation, we propose an iterative procedure of the parallel EDR calculation in each CUDA block. For a task that $|traj_{d}|=m$ and $|traj_q|=n$, an $(m+1)\times (n+1)$-sized state matrix is maintained. In $i$-th iteration, thread $th_j$ calculate the $j$-th state on slash $i$ based on the corresponding states on slash $i-1$ and slash $i-2$. To achieve a coalesce access pattern, we store state matrix $S$ with xxx order (the order shows in figure \ref{fig:EDR}(b)), because based on this origanization values that threads read and write in each iteration are nearby. For example, on 4-th iteration, the read and write requests of threads 0-3 are continuous, contributing to the coalesce access pattern. For slashes which there are thousands of states on them, states are computed by all threads in some loops.
+
+\eat{
+We designed an iterative framework for parallel EDR calculation. According to the defination of EDR which is given in defination~\ref{def:edr}, the process of EDR calculation can be divided into several independent steps. Figure \ref{fig:DPstate} shows an example of calculating the EDR between two trajectorie $traj_q$ and $traj_d$ with length $m$ and $n$. Each value in a state (represented as $state[i][j]$) is calculated by comparing and choosing the minimun value of $\{state[i-1][j]+1,state[i][j-1]+1,state[i-1][j-1]+subcost\}$. After all the states have been calculated, the $state[m][n]$ is the EDR between two trajectories. If we use slashes to group the states, we notice that the values of states in one slash rely on the value of states in two upper left slashes. For example, in figure \ref{fig:DPstate}, if we want to calculate the states on slash 3, the states on slash 1 and slash 2 are needed. Meanwhile, comparing operations within a slash have no relationship, inspiring us to invoke the calculations within the same slash in parallel, forming the basic idea of our solution.
+
+Based on this framework, we propose a procedure of calculating EDRs in parallel on GPU, as algorithm \ref{alg:EDR} shows, whose implement is based on CUDA. Given a set of EDR calculation tasks, we first assign each of them to a block to make GPU full-loading, in order to improve the throughtput(line 1-2). In each block, the values of states are calculated in $(2\times max\{m,n\}+1)$ loops from $state[0][0]$ to $state[m][n]$ slash by slash (line 10). For example, in figure \ref{fig:DPstate}, state on slash 1 is generated, and then slash 2, slash 3, ..., until the slash $(2m+1)$. In each loop data on two before slashes are stored in high-speed local memory of each SM, which is allocated before starting loops (line 6), because they will be frequently accessed by threads. Noting that the length of trajectory is almost smaller than 2048, it is enough for space of local memory to store these data. As for the state matrix of this calculation, we store them according to the order of slash, as figure \ref{fig:DPstate} shows. In this case, the data required by threads are nearby, assuring the coalesce accessing pattern.
+
+
+
 
 
 In each thread block, based on the data of previous two slashes, all the values on current slash are calculated by mass of threads in parallel by equation (1) mentioned in Section II (line 11-16). After finishing the calculation on current slash i, the states on slash i-2 stored in local memory are flushed into state matrix in global memory, and then states on slash i-1 and i become the new "two last slashes" (line 17-22). The result of EDR calculation of this block can be extracted from state matrix after all loops (line 25). 
@@ -1063,7 +1111,7 @@ We can see that in our solution, the number of steps needed for EDR?calculation 
 %% ??????kernel?????????????????GPU????
 %% ??????kernel?????????????????GPU????
 We propose a multi-GPU implementation of our strategy dealing with large-scale of EDR calculation from all top-k trajectory queries by dividing the set of EDR calculation tasks into several equal size part, to achieve a load balancing and maximum usage of multiple GPUs. Before running these tasks, we use an independent memory allocated table (MAT) to store trajectory data when they are loaded into GPU global memory first, because in this way if a trajectory has been loaded into global memory, by looking for MAT we can avoid the duplicated low-speed data transfering between memory and GPU. However, the volume of the GPU global memory is usually so limited that not all trajectory data can be filled into it. To make an tradeoff, we maintain a memory pool and integrate it to MAT. If the pool is full, we use Least Recently Used (LRU) algorithm to drop some outdated trajectories. This strategy is efficient in real life because there exists hotspot within queries. For example, trajectories in city center may be required by queries more frequently because the population in city center is denser than rural area. After the kernel finishing, EDR calculation results from different GPUs are collected and query engine then filters the candidates, as shown in line 9 in algorithm \ref{alg:TSQ_1}.
-
+}
 \subsubsection{Complexity Analysis}
 We analyse the complexity of our approach of top-k similarity query. 
 
