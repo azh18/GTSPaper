@@ -31,6 +31,7 @@
 \newcommand{\trajcell}{{f_c}\xspace}
 \newcommand{\trajtable}{{\cal S}\xspace}
 \newcommand{\quadtree}{{\cal P}\xspace}
+\newcommand{\rangecandnode}{{{\cal C}_r^c}\xspace}
 \newcommand{\eat}[1]{}
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
@@ -393,7 +394,7 @@ We use Edit Distance on Real sequence (EDR) to measure the similarity between tw
 
 \noindent{\bf GPU architecture and programming model.}
 %
-A GPU typically consists of tens of Streaming Multiprocessors (SMs) where each SM includes a number of cores running threads concurrently. All threads execute the same set of instructions over different data, following the Single Instruction Multiple Data (SIMD) parallelism model. Each GPU core has its local memory and all cores share global memory, establishing a complicated memory hierarchy.
+A GPU typically consists of tens of Streaming Multiprocessors (SMs) where each SM includes a number of cores running threads concurrently. All threads execute the same set of instructions over different data, following the Single Instruction Multiple Data (SIMD) parallelism model. Each SM has its local memory and 64 or 128 cores, and all SMs share global memory, establishing a complicated memory hierarchy.
 Data requested by threads must be transferred from main memory to global memory first, via PCIe bus (the bandwidth is lower than 10GB/s).
 
 We adopt CUDA~\cite{nvidia2014toolkit} proposed by NVIDIA as our programming model over GPUs. A GPU program is also referred to as a \emph{kernel}. When executing a kernel program, a grid of CUDA threads are launched immediately. We divide all CUDA threads into blocks and further into warps explicitly. During GPU computing, each CUDA block will be assigned to one SM which maintains a warp scheduler to determine which warp to be executed over the cores in next clock cycle. 
@@ -429,7 +430,7 @@ All the above factors pose great challenges in developing GPU-accelerated approa
 	
 	\noindent \textbf{Load Balance} To best utilize GPU to achieve a high throughtput, the load balance should be achieved to make sure that all cores are not idle. This issue requires the task assigned to each CUDA block should has a similar scale in our framework.
 	
-	\noindent \textbf{Data Transfer and Store} The capability of GPU global memory is limit, and meanwhile the bandwidth of PCI-E is much lower than that of global memory, which proposes a dilemma between storing all data in host memory and global memory. Meanwhile, this requires us to reduce data transferring through PCI-E to avoid the performance loss. 
+	\noindent \textbf{Data Transfer and Store} The capability of GPU global memory is limit, and meanwhile the bandwidth of PCI-E is much lower than that of global memory, which proposes a dilemma between storing all data in main memory and global memory. Meanwhile, this requires us to reduce data transferring through PCI-E to avoid the performance loss. 
 	
 	Comparing to other parallel computing tools based on multi-core CPU such as MPI, these three issues raise a challenge for \frname to get a high speedup ratio on GPU.
 }
@@ -461,10 +462,18 @@ Without loss of generality, we illustrate the major steps of trajectory query pr
 We first introduce how to perform trajectory range query, which involves two steps. 
 
 \noindent $\bullet$ {\bf Candidate block generation}:
-The input to this step is a query region $R$ and the output is a set of blocks (i.e., each block contains several cells) involving candidate trajectory points, denoted by $\rangecand$. To do this, we first traverse PR-quadtree in \idxname to locate leaf nodes in which the corresponding blocks are overlapped with $R$. We then check if the block is already retained in global memory of GPU. If not, the block is identified as a candidate block and put into $\rangecand$.
+The input to this step is a query region $R$ and the output is a set of blocks (i.e., each block contains several cells) involving candidate trajectory points, denoted by $\rangecand$. To do this, we first traverse PR-quadtree in \idxname to locate leaf nodes in which the corresponding blocks are overlapped with $R$. 
+We then identified the block as a candidate block and put into $\rangecand$, and check if points within it are already retained in global memory of GPU. If not, the points in that block are transferred into GPU and corresponding item in MAT is updated.
+\eat{
+We then check if the block is already retained in global memory of GPU. If not, the block is identified as a candidate block and put into $\rangecand$.
+}
 
 \noindent $\bullet$ {\bf GPU-accelerated point refinement}:
-In this step, we verify all the points in the candidate blocks $\rangecand$ using GPU. If a point resides in $R$, we retrieve the corresponding trajectory based on trajectory id and add it into the final result set $\rangeq(R)$. For load balance purpose, we assign a block of trajectory points to one GPU SM for verification. Each CUDA thread is responsible for several continuously stored points in the same block to increase data access throughput.
+In this step, we verify all the points in the candidate blocks $\rangecand$ using GPU. If a point resides in $R$, we retrieve the corresponding trajectory based on trajectory id and add it into the final result set $\rangeq(R)$. For load balance purpose, we assign a block of trajectory points to one GPU SM for verification. 
+Each CUDA thread is responsible for several points in the same block, while nearby points in global memory are verified by nearby threads to achieve a coalesce access pattern and increase data access throughput.
+\eat{
+Each CUDA thread is responsible for several continuously stored points in the same block to increase data access throughput.
+}
 
 To handle trajectory top-$k$ similarity query, we maintain a $k$-sized priority queue $PQ$ in main memory and perform the following three steps, where step 2 and 3 are executed iteratively.
 
@@ -495,7 +504,7 @@ In the end of each iteration, we insert candidate trajectories into priority que
 	%The frequency vectors of trajectories in $\mathbb{D}$ are also generated in this step.
 	
 	\noindent \textbf{Constructing PR-Quadtree}
-	The load balancing is strongly required in GPU computing. To achieve this characteristic, we build a PR-quadtree \cite{DBLP:conf/gis/LettichOS15} $QT$ based on $G$ in which cells are linked to each node according to the location, with a constrain that for each node $N_i$, the number of points within the cells linked to it does not exceed a given threshold $M_{node}$. Morton-based encoding is performed to the identifies of cells for the purposes including coalesce access pattern and fast traverse of quadtree, and the characteristic of it permits us to get the identifies of cell directly from a coordinate. Finally, a memory allocated table (MAT) recording which data block retained in global memory is initialized and maintained to avoid duplicated data transferring from host memory to GPU, which use a LRU strategy to cache the data blocks.
+	The load balancing is strongly required in GPU computing. To achieve this characteristic, we build a PR-quadtree \cite{DBLP:conf/gis/LettichOS15} $QT$ based on $G$ in which cells are linked to each node according to the location, with a constrain that for each node $N_i$, the number of points within the cells linked to it does not exceed a given threshold $M_{node}$. Morton-based encoding is performed to the identifies of cells for the purposes including coalesce access pattern and fast traverse of quadtree, and the characteristic of it permits us to get the identifies of cell directly from a coordinate. Finally, a memory allocated table (MAT) recording which data block retained in global memory is initialized and maintained to avoid duplicated data transferring from main memory to GPU, which use a LRU strategy to cache the data blocks.
 	%Our system includes two parts, storage component and query processing component. As the Figure \ref{fig:Archi} shows, raw trajectories are preprocessed and divided into sub-trajectories according to quadtree index, with the corresponding sequence of cell stored as cell-based trajectories. After raw trajectories are loaded into storage component, thousands of queries are processed in query processing component, with the acceleration of GPU, outputing query results. It's worth noting that our system is designed for query-only applications, and we do not concern about the manipulation of data after building index. We then introduce these two components briefly.
 	
 	\subsection{Range Query Component}
@@ -689,9 +698,9 @@ In this section, we introduce the strategy of query processing of our framework 
 
 \subsection{Overview}
 
-Various spatial indices increase throughput by pruning a considerable amount of computation in the query execution. However, the computational cost of refinement still occupies a large propotion in the execution time of query processing even if there is an efficient indexing scheme. In range query, millions of points wait to be verified after the filter phase under the situation of large-scale queries. This phenomenon is more obvious for top-k similarity query processing, because the complexity of calculating EDR is quadratic. As we have mentioned in Section I, only 10 top-5 similarity query on a 9GB dataset spends about 700s, although a state-of-the-art pruning scheme is applied.
+Various spatial indices increase throughput by pruning a considerable amount of computation in the query execution. However, the computational cost of refinement still occupies a large propotion in the execution time of query processing even if there is an efficient indexing scheme. In range query, millions of points wait to be verified after the filter phase under the situation of large-scale queries. This phenomenon is more obvious for top-k similarity query processing, because the complexity of calculating EDR is quadratic. In our experiment, only 10 top-5 similarity query on a 9GB dataset spends about 700s, although the state-of-the-art pruning scheme is applied.
 
-It is an oppotunity to utilize GPU to accelerate the refinement phase in query processing. A straightforward method may be directly assigning each query task to a CUDA thread. However, this method cannot make full use of GPU because of some special issues mentioned in the background. For range query, different queries may have different area $R_q$ and different dense of points, which means the workloads of them are not balanced and leads to a low speedup. For similarity query, there exists some dependence between the procedure of calculating EDR. If we directly dispatch computational tasks to CUDA threads, a large amount of synchronization between them will make some cores idle during the computation and reduce the overall throughput. Moreover, the data placement and layout have big effects on the efficiency, because the requirement of coalesce access pattern and the low transferring speed between host memory and global memory.
+It is an oppotunity to utilize GPU to accelerate the refinement phase in query processing. A straightforward method may be directly assigning each query task to a CUDA thread. However, this method cannot make full use of GPU because of some special issues mentioned in the background. For range query, different queries may have different area $R_q$ and different dense of points, which means the workloads of them are not balanced and leads to a low speedup. For similarity query, there exists some dependence between the procedure of calculating EDR. If we directly dispatch computational tasks to CUDA threads, a large amount of synchronization between them will make some cores idle during the computation and reduce the overall throughput. Moreover, the data placement and layout have big effects on the efficiency, because the requirement of coalesce access pattern and the low transferring speed between main memory and global memory.
 
 To get a better usage of GPU under these issues, we design a series of strategies in query processing based on the storage component of \frname. In this section, they will be introduced through the illustration of how CPU and GPU work together and some details of implementation on GPU. We firstly introduce the procedure of range query and then following top-k similarity query.
 
@@ -705,54 +714,91 @@ To get a better usage of GPU under these issues, we design a series of strategie
 	\label{alg:RQ}
 	\begin{algorithmic}[1]
 		\REQUIRE ~~\\
-		queryIDs $Q$; query ranges $R_Q$; dataset $\mathbb{D}$; PR-quadtree $QT$, Global Grid $G$;
+		queryIDs $Q$; query ranges $R_Q$; dataset $\mathbb{D}$; PR-quadtree $\quadtree$, Cell-based Trajectory Table $\trajtable$;
 		\ENSURE ~~\\
 		Result Trajectories $T_{result}$;
+		\STATE $C_P\leftarrow initTable()$
 		\FOR{$q\in Q$ \textbf{parallelly}}
-			\STATE $Cand_{q}\leftarrow findOverlapNode(QT.root,R_q)$
-			\FOR{$node \in Cand_{q}$}
-				\STATE $db=[]$
-				\FOR{$cell \in node$}
-					\STATE $db.insert(cell.datablock)$
-				\ENDFOR
-				\STATE $Cand_Q.insert(pair(db,q))$
-			\ENDFOR
+			\STATE $C_N,\rangecandnode \leftarrow initSet()$
+			\STATE $C_N.insert(\quadtree.root)$
+			\WHILE{$C_N\neq \phi$}
+				\STATE $N\leftarrow C_N[0]$
+				\STATE $A_R\leftarrow AR(R_q.mbr,N.level)$
+				\STATE $CR_N\leftarrow CR(N)$
+				\IF{$CR_N.N_x\in A_R.x_r$ \textbf{AND} $CR_N.N_y\in A_R.y_r$}
+					\IF{$N.isLeaf=TRUE$}
+						\STATE $\rangecandnode.insert(N)$
+						\STATE $C_P.insert(pair(N,q))$
+					\ELSE
+						\STATE $DC\leftarrow findDaughter(N)$
+						\STATE $C_N.insert(DC)$
+					\ENDIF
+				\ENDIF
+			\ENDWHILE
 		\ENDFOR
-		\STATE $transferPairsToGPU(Cand_Q)$
-		\STATE $T_{result} \leftarrow verifyTrajOnGPU(R_Q,Cand_Q)$
+		\STATE $transferDatatoGPU(C_P,\trajtable)$
+		\STATE $transferPairsToGPU(C_P)$
+		\STATE ${Tid} \leftarrow verifyTrajOnGPU(R_Q,C_P)$
+		\STATE $T_{result}\leftarrow recoverTraj(L_{Tid},\trajtable)$
 		\RETURN $T_{result}$
 	\end{algorithmic}
 \end{algorithm}
 
-Similar to the most of works about range query, we use a filter-and-refine scheme when processing range queries as Algorithm~\ref{alg:RQ} shows. Considering that there are a large amount controlling instructions such as judgement, looping and branching in the traverse of PR-quadtree, it is better to finish the filter phase by CPU because many divergences are generated in controlling instructions, which hurts the efficiency significantly. Tasks in refinement phase are almost computational operations, so this phase is accelerated by GPU in our framework.  
+Similar to the most of works about range query, we use a filter-and-refine scheme when processing range queries as Algorithm~\ref{alg:RQ} shows. Considering that there are a large amount controlling instructions such as judgement, looping and branching in the traverse of PR-quadtree, it is better to finish the filter phase by CPU because many divergences are generated in controlling instructions, which hurts the efficiency significantly (line 1-21). Tasks in refinement phase are almost computational operations, so this phase is accelerated by GPU in our framework (line 22-23).
 
 %achieve this in two step. There have been a solution~\cite{GPUTaxi} leveraging GPU to handle range query based on quadtree. However, this solution is based on a fact that all the points will be transfered into GPU memory, which is not realistic at a big data scene. In our solution, by integrate a usage table technique, we can also achieve a similar speedup even if data are not all in GPU memory. 
 %
 
 \subsubsection{Filter by CPU}
 
-In this phase a set of query ranges $R_Q$ are input. Then for each query range $R_q$, a set of candidate points $Cand_q$ are transferred to global memory, waiting for verifying in the refinement phase.
+In this phase a query ranges $R$ are input and candidate blocks $\rangecand$ are retrieved, then a set of candidate points $\rangecand$ are transferred to global memory, waiting for verifying in the refinement phase.
 
 \begin{figure}[!t]\centering
 	\scriptsize{
-		\begin{minipage}{0.48\linewidth}
+		\begin{minipage}{0.5\linewidth}
 			\centering
-			\includegraphics[width=\linewidth]{pdf/MBR_lv2.pdf}
-			(a) Example of Level 2 in PR-quadtree
+			\includegraphics[width=\linewidth]{pdf/AR_lv2.pdf}
+			(a) Example of procedure of $AR(mbr,2)$ in level 2
 		\end{minipage}
 		\hfill
-		\begin{minipage}{0.48\linewidth}
+		\begin{minipage}{0.46\linewidth}
 			\centering
-			\includegraphics[width=\linewidth]{pdf/MBR_lv1.pdf}
-			(b) Example of Level 1 in PR-quadtree
+			\includegraphics[width=\linewidth]{pdf/MBR_lv2.pdf}
+			(b) Example of procedure of $CR(N)$ in level 2
 		\end{minipage}
 	}
-	\caption{An example of finding the cells overlapped or intersected given the query MBR under Morton-based encoding PR-quadtree and Global Grid\label{fig:MBR_FindCell}}
+	\caption{Examples of the procedure $AR(mbr,l)$ (left) and $CR(N)$ (right)\label{fig:ARCR}}
 \end{figure}
 
-We firstly denote ID of each query as $q$, forming a query set $Q$. then we traverse the PR-quadtree $QT$ from the root to the layer $\lambda$ to find leaf nodes which intersect or overlap the MBR $mbr_q$ of $R_q$. Under the Morton-based encoding, this process can be finished by several kinds of binary operations. 
+Given $mbr_R$, we can judge in each layer which nodes overlap the MBR. We firstly define a map $AR$ from MBR and level $l$ to a tuple of range. 
 
-Given $mbr_q$, we can judge in each layer which nodes overlap the MBR. Figure \ref{fig:MBR_FindCell}(a) shows the example of nodes in level 2 in a complete PR-quadtree. The coordinates of two vertexes are transformed to binary \{(00, 01), (10, 11)\}, then we can find that from the transformation shows at upper right, the ID of nodes containing two vertexes can be generated. Applying this transformation to the range of coordinates generated from MBR, as the table at lower right shows, we can generate all the nodes which the MBR overlap or intersect. Another example of nodes in level 1 is shown in figure \ref{fig:MBR_FindCell}(b). 
+\begin{definition}[$AR(mbr,l)$]\label{def:AR}
+	Given all the nodes in the level $l$ in a complete-quadtree $QT$, the area of Global Grid can be divided into an $2^l\times 2^l$ grid and coordinates in each axis are divided into $2^l$ ranges $R_X$ and $R_Y$ identified from 0 to $2^l-1$ respectively. Then, given an MBR $mbr=(x_{min},y_{min},x_{max},y_{max})$, the $AR(mbr,l)$ is defined as 
+	$$AR(mbr,l)=(x_{R},y_{R}), ~s.t.$$
+	$$x_{R}=\{R_X[i]|R_{X_{min}}\leq i\leq R_{X_{max}},~i\in \mathbb{N}\}$$
+	$$y_{R}=\{R_Y[i]|R_{Y_{min}}\leq i\leq R_{Y_{max}},~i\in \mathbb{N}\}$$
+	where $R_{X_{min}}$, $R_{X_{max}}$, $R_{Y_{min}}$, $R_{Y_{max}}$ are the range that $x_{min},y_{min},x_{max},y_{max}$ located respectively.
+\end{definition}
+
+Then we define the a map $CR(N)$ from $N$ to its ranges in x-axis and y-axis, called the \textit{range coordinate}.
+\begin{definition}[$CR(N)$]\label{def:CR}
+	Given node $N$ with ID $nid$ in the level $l$, $CR(N)$ is defined as:
+	$$CR(N)=(N_x,N_y), ~s.t.$$
+	$$N_x=\sum_{i\in N_{even},0\leq i\leq 2l-1}(\lfloor \frac{nid}{2^i}\rfloor \mod 2)\times 2^{\lfloor \frac{i}{2}\rfloor}$$ 
+	$$N_y=\sum_{i\in N_{odd},0\leq i\leq 2l-1}(\lfloor \frac{nid}{2^i}\rfloor \mod 2)\times 2^{\lfloor \frac{i}{2}\rfloor}$$ 
+\end{definition}
+
+
+Figure~\ref{fig:ARCR}(a) shows an example of $AR(mbr,l)$ in level 2 of a complete-quadtree. $mbr$ is represented as the red dotted rectangle, and we could get the ranges in x-axis and y-axis that two vertexes locate in. After that, $x_R$ and $y_R$ can be calculated and output as the result of $AR(mbr,2)$.
+Figure~\ref{fig:ARCR}(b) shows an example of $CR(N)$ in level 2 of a complete-quadtree. Given an cell `6', the range coordinate of it is $(10,01)_2$. It can be seen that these two maps are able to implemented by some trivial bit-wise operations with a low computational cost. 
+
+Based on these definitions, we introduce the procedure of the filtering phase. We firstly maintain two sets $C_{N}$ and $\rangecandnode$, and add the root of PR-quadtree $\quadtree$ to $C_N$ (line 3-4). Then, for each $N\in C_{N}$, we generate $AR(R.mbr,N.l)$ as the $A_{R}$, and generate $CR(N)$ as the $CR_{N}$ (line 6-8). If $CR_N.N_x\in A_{R}.x_{R}$ and $CR_N.N_y\in A_{R}.y_{R}$, we say that $N$ \textit{overlap}s $R$. Then, if this $N$ is a leaf as well, it will be added to $\rangecandnode$, else the daughters of it are extracted by $findDaughter(N)$ and added to $C_{N}$ (line 9-17). This process terminates when $C_{N}=\phi$. Finally, $\rangecandnode$ is the set of all leaf nodes that overlaps the MBR of $R$.
+
+\eat{
+We traverse the PR-quadtree $\quadtree$ from the root, and for each $N$ we access, we  to the layer $\lambda$ to find leaf nodes whose block intersect or overlap the MBR $mbr_R$ of $R$. This process can be finished by several $findDaughter$ operations. 
+
+
+Figure \ref{fig:MBR_FindCell}(a) shows the example of nodes in level 2 in a complete PR-quadtree. The coordinates of two vertexes are transformed to binary \{(00, 01), (10, 11)\}, then we can find that from the transformation shows at upper right, the ID of nodes containing two vertexes can be generated. Applying this transformation to the range of coordinates generated from MBR, as the table at lower right shows, we can generate all the nodes which the MBR overlap or intersect. In non-complete quadtree some ID of nodes may not exist, so these invalid IDs will then be eliminated. Another example of nodes in level 1 is shown in figure \ref{fig:MBR_FindCell}(b). 
 
 For leaf nodes overlapping or intersecting $mbr_q$, they are added into the candidate set $Cand_q$. For the non-leaf nodes overlapping or intersecting $mbr_q$, we check their daughters recursively. The ID of daughters can be generated by applying a two-bit leftshift to the parent's ID, then adding ``00'', ``01'', ``10'', ``11''. For example, the daughters of $N=(1,2)$ can be found by equation (5).
 
@@ -767,8 +813,9 @@ For leaf nodes overlapping or intersecting $mbr_q$, they are added into the cand
 		\end{cases}
 	\end{split}
 \end{equation}
+}
 
-After generating the candidate nodes, we make the pair of data blocks and query's ID $(db_{q,i},q)$. For each candidate node $N_c$ in each query, the cells linked to $N_c$ are searched and corresponding datablocks are packed into a larger datablock $db_{q,i}$, then it is paired with $R_q$. Reminding that the number of points within a node is smaller than $M_{node}$, the tasks of verifying these pairs are in even scale. Finally, the query ranges $R_Q$, the information of pairs and the datablocks are transferred into global memory.
+For each query $q\in Q$ a $\rangecandnode$ can be generated parallelly in multiple threads of CPU, and we make the pair of node $N\in \rangecandnode$ and query $(N,q)$ and add it to a new table $C_P$. For each node $N$ in $C_P$, the cells in $N.block$ are searched and points of them are extract from cell-based trajectory table $\trajtable$ and transferred into global memory. Reminding that the number of points within a node is smaller than $M_{node}$, the tasks of verifying points in these pairs are in even scale. Finally, the information about table $C_P$ and the query ranges of $q\in Q$ denoted as $R_q$ are transferred into global memory.
 
 \subsubsection{Refine by GPU}
 
@@ -779,12 +826,12 @@ After generating the candidate nodes, we make the pair of data blocks and query'
 	\label{alg:verifyTrajRQ}
 	\begin{algorithmic}[1]
 		\REQUIRE ~~\\
-		query ranges $R_Q$; pairs $Cand_Q={pair(db,q)}$;
+		query ranges $R_Q$; table $C_P={pair(N,q)}$; Point Data $DB$;
 		\ENSURE ~~\\
 		Result Trajectories $T_{result}$;
-		\FOR{$cudaBlockID \in [0,size(Cand_Q)-1]$ \textbf{parallelly}}
-			\STATE $blockDB \leftarrow Cand_Q[cudaBlockID].db$
-			\STATE $queryID \leftarrow Cand_Q[cudaBlockID].q$
+		\FOR{$cudaBlockID \in [0,size(C_P)-1]$ \textbf{parallelly}}
+			\STATE $blockDB \leftarrow DB[cudaBlockID]$
+			\STATE $queryID \leftarrow C_P[cudaBlockID].q$
 			\STATE $blockRange \leftarrow R_Q[queryID]$
 			\FOR{$i\in [0,size(blockDB)/N_{thread}]$}
 				\FOR{$cudaThreadId \in [0,N_{thread}-1]$ \textbf{parallelly}}
@@ -799,32 +846,45 @@ After generating the candidate nodes, we make the pair of data blocks and query'
 	\end{algorithmic}
 \end{algorithm}
 
-At the second step, we refine the candidates on GPU in parallel and get the final results. The procedure is shown in Algorithm~\ref{alg:verifyTrajRQ}. Each CUDA block is assigned with a $(db_{q,i},q)$ pair, which indicates a task of checking which points in $db_{q,i}$ are truely within the query range $R_q$. In each CUDA block, points are assigned evenly to CUDA threads in loops. As mentioned in \ref{sec:index}, points within the same cell are stored continuously, and the identifies of cells in a node are consecutive because of Morton-based encoding. For this reason, we propose an strategy that in a single loop, $N_{thread}$ threads verify $N_{thread}$ points in parallel, and the loop continues until all the points are verified. In this strategy memory request of the threads are nearby, so the coalesce accessing pattern is achieved. For example, in the first loop, thread 0 reads point 0, thread 1 reads point 1, and so on. In addition, reminding that the quantity of points within a node is smaller than $M_{cell}$ points, the load balance is achieved in this step. 
+At the second step, we refine the candidates on GPU in parallel and get the final results. The procedure is shown in Algorithm~\ref{alg:verifyTrajRQ}. Each CUDA block is assigned with a $(N,q)$ pair, which indicates a task of checking which points in the cells of $N.block$ are truely within the query range $R_q$. In each CUDA block, points are assigned evenly to CUDA threads in loops. As mentioned in \ref{sec:index}, points within the same cell are stored continuously, and the identifies of cells in a node are consecutive because of Morton-based encoding. For this reason, we propose an strategy that in a single loop, $N_{thread}$ threads verify $N_{thread}$ points in parallel, and the loop continues until all the points are verified. In this strategy memory request of the threads are nearby, so the coalesce accessing pattern is achieved. For example, in the first loop, thread 0 reads point 0, thread 1 reads point 1, and so on. In addition, reminding that the quantity of points within a node is smaller than $M_{cell}$ points, the load balance is achieved in this step. 
 
 \subsubsection{Complexity Analysis}
-We analyse the complexity of our approach of range query. Given the length of a cell $L_cell$, the density of points $\rho$, the number of cores in an SM $N_{core}$, the number of SM in a GPU $N_{SM}$, the parameter $M_{node}$ and the area of query range $S_q$, the overall computational cost is calculated as equation~\ref{eq:costRangeGPU}.
+We analyse the complexity of our approach of range query. Given the length of a cell $L_cell$, the density of points $\rho$, the number of cores in an SM $N_{core}$, the number of SM in a GPU $N_{SM}$, the parameter $M_{node}$ and the area of query range $S_q$, the overall computational cost is calculated as equation~\ref{eq:costRangeGPU}, while the cost on CPU approach is calculated as equation~\
 
-\begin{equation}\label{eq:costRangeGPU}
+\begin{equation}\label{eq:costRangeCPU}
 	\begin{split}
-		Cost_{RQ(Q,\mathbb{D})} = &\frac{\max \{\rho L^2_{cell}, M_{node},N_{core}\}}{N_{core}}\\ &\times \sum_{q=1}^{N_Q}  \frac{\rho S_{q}}{N_{SM} M_{node}}
+		Cost_{RQ(CPU)} = \sum_{q=1}^{N_Q} \rho S_{q}
 	\end{split}
 \end{equation}
 
-% should I analysis the cost on CPU? It's obvious.
+
+\begin{equation}\label{eq:costRangeGPU}
+	\begin{split}
+		Cost_{RQ(GPU)} = &\frac{\max \{\rho L^2_{cell}, M_{node},N_{core}\}}{N_{core}}\\ &\times \sum_{q=1}^{N_Q}  \frac{\rho S_{q}}{N_{SM} M_{node}}
+	\end{split}
+\end{equation}
+
+% maybe it is not neccessary to analysis the cost of CPU.
 
 \subsection{Top-k Similarity Query}
 
-Given a query trajectory $T_q$, the goal of the top-k similarity query is retrieve k closest trajectories $\simq(T_q)$ measured by EDR. The FDs between $T_q$ and trajectories $T_d\in \alltraj$ are firstly calculated as the lower bound of EDR, then we iterate between generating candidates and calculating real EDRs in batch, until none of the candidate trajectories in current iteration has lower possible EDR value than the trajectories whose EDRs have been calculated. The algorithm is shown in Algorithm~\ref{alg:TSQ_1}.
+Given a query trajectory $T_q$, the goal of the top-k similarity query is retrieve k closest trajectories $\simq(T_q)$ measured by EDR. As shown in Algorithm~\ref{alg:TSQ_1}, the FDs between $T_q$ and trajectories $T_d\in \alltraj$ are firstly calculated as the lower bound of EDR, then we iterate between generating candidates and calculating real EDRs in batch, until none of the candidate trajectories in current iteration has lower possible EDR value than the trajectories whose EDRs have been calculated. 
 
 \subsubsection{Frequency Distance Calculation}
 
-In this component, we firstly use cell-based trajectory table $CT$ in \idxname to generate the frequency vectors (FV) of $T_q$ and $T_d$, which indicate the number of points within each cell for a trajectory. For trajectory $T_d\in \alltraj$, because the node in $L_d\in CT$ has a value $num$ storing the number of points belonging to trajectory $T_d$ within each cell, through a scan in $L_d$ we can get its FV $FV_d$. This step can be performed during offline pre-processing, because FVs of $T\in \alltraj$ will be reused many times during large-scale similarity query. For query trajectory $T_q$, owing to the Morton-based encoding of Global Grid, given the point sequence of $T_q$ including coordinates, the identifies of cells that the points reside in can be computed using method shown in figure x. So, we can generate FV $FV_q$ easily as well.
+In this component, we firstly use cell-based trajectory table $CT$ in \idxname to generate the frequency vectors (FV) of $T_q$ and $T_d$, which indicate the number of points within each cell for a trajectory. For trajectory $T_d\in \alltraj$, because in $L_d\in \alltraj$ there is a value $num$ storing the number of points belonging to trajectory $T_d$ within each cell, we can get its FV $FV_d$ through a scan in $L_d$. This step can be performed during offline pre-processing, because FVs of $T\in \alltraj$ will be reused many times during large-scale similarity query. For query trajectory $T_q$, owing to the Morton-based encoding of Global Grid, given the point sequence of $T_q$ including coordinates, the identifies of cells that the points reside in can be computed using method shown in figure x. So, we can generate FV $FV_q$ easily as well.
 
 After $FV_q$ and $FV_d$ are generated, the FD $FD(FV_q,FV_d)$ between them can be calculated by CompHisDist algorithm\cite{DBLP:conf/sigmod/ChenOO05} with linear complexity. According to the Theorem~\ref{theo:LB}~\cite{DBLP:conf/sigmod/ChenOO05}, $FD(FV_q,FV_d)$ is the lower bound of $EDR(T_q,T_d)$.
 
 \begin{theorem}\label{theo:LB}
 	Let $T_r$ and $T_s$ be two trajectories, $FV_r$ and $FV_s$ be the frequency vector of $T_r$ and $T_s$ respectively. We have $FD(FV_r,FV_s)\leq EDR(T_r,T_s)$.
 \end{theorem}
+
+However, FV will be very long if $\lambda$ of Global Grid is big because of large number of cells, and in this situation the cost of computing FD is high, although the complexity of ComHisDist algorithm is linear. For example, in Shanghai private cars dataset, an area of $51.2\times 51.2 km^{2}$ is divided into $2^18$ cells, if the length of a cell is set as $100m$. Inspired by the solution about alter the granularity of histogram proposed in ~\cite{DBLP:conf/sigmod/ChenOO05}, we build a Virtual Grid $\allcell_V$, in which the number of cells is smaller than Global Grid, to reduce the length of FV. Under our \idxname index, we do not need extra memory to store virtual grid because the information of it can be obtained by computation directly. 
+
+The virtual grid can be seen as all of nodes in one layer of complete-quadtree, so we can use $findParent$ operation of range query to obtain the corresponding ID of cell in $\allcell_V$ for the cell in $\allcell$. Figure \ref{fig:VirtualGrid} is an example: a virtual grid with 4 cells is built based on a fixed grid with 16 cells. Chen~\cite{DBLP:conf/sigmod/ChenOO05} has proved that FD is a looser lower bound of EDR as long as the length of cell in grid is the multiple of $\epsilon$. So, FV can be redefined as the number of points within each cell in virtual grid, and under this definition FD is looser lower bound of EDR but cheaper to be computed. We set a parameter VC, which indicates $\lambda-i$, to control this tradeoff: 
+
+if we use the virtual grid to calculate FD, the cost of computation will decrease. Owing to the Morton encoding of GT-quadtree, the virtual grid can be used without the requirement of extra memory consumption, because we can directly get which cell in the virtual grid contains a given point and then generate FVs. For example, in figure \ref{fig:VirtualGrid}, the original FV of the trajectory can be simplified into [1,5,0,0], whose length is decreased from 16 to 4, just by a transformation implemented by right shifting. However, it should also be pointed out that a tradeoff should be found between too large and too small cells because the larger cells are, the looser bound is. We set a parameter called VC permitting the configuration of this tradeoff, which indicates how many right shifting operations are performed to get the transformation from original FV to simplified one in virtual grid. In above example, the VC parameter is 2.
 
 % For a trajectory $t_i$ within the corresponding cell,  whose cell-based trajectory $L_i$ has $m$ nodes, we maintain an length-$m$ array $V_{freq}$ and initialize it to all-zero firstly. Then, we get the sequence of cells from $L_i$, and for each node $(cid,num,offset)$ we add $num$ to the cid-th value of $V_{freq}$. After processing the whole $L_i$, the array $V_{freq}$ becomes the FV of trajectory $t_i$. The FV of $t_q$ and $t_d$ can be generated by this method, and then the FD between them are calculated by CompHisDist algorithm\cite{DBLP:conf/sigmod/ChenOO05} with linear complexity.
 
@@ -834,7 +894,7 @@ After $FV_q$ and $FV_d$ are generated, the FD $FD(FV_q,FV_d)$ between them can b
 
 Based on the FD between $T_q$ and all $T_d\in \alltraj$, we generate the candidates which are likely to be the one of top-k closest trajectories of $T_q$ in every loop and then invoke GPU to calculate the real EDR between $T_q$ and them to reduce the times of complex EDR calculation.
 
-We use a xxx scheme in the process of candidate generation with the lowerbound FD to make sure that no trajectories which are probable to be one of the results are omitted. We firstly maintain a priority queue $FDPQ$ to store the FDs between $T_q$ and all trajectories of $\alltraj$, with all calculated FDs together with the trajectory ID added into it. Then, in each iteration, different from traditional xx scheme which chooses one candidate once, we extract $l>1$ trajectories whose FDs are the smallest from $FDPQ$ to a candidate set $Cand_q=(T_{c},T_q)$ waiting for calculating real EDR, because in traditional situation the scale of candidates is small, while GPU can only get a remarkably high speedup under a large number of tasks. After $Cand_q$ is extracted, the candidate trajectories $T_{c}$ in it are recovered with the help of $CT$ form cell-based trajectory table and transferred into global memory of GPU, together with the information about $T_q$ and some parameters such as $\epsilon$ needed in the calculation of EDR. At the end of this iteration, the tasks of calculating EDR between each $T_c$ and corrsponding $T_q$ are uniquely assigned to CUDA blocks. 
+We use a xxx scheme in the process of candidate generation with the lowerbound FD to make sure that there are no trajectories probable to be one of the results are omitted. We firstly maintain a priority queue $FDPQ$ to store the FDs between $T_q$ and all trajectories of $\alltraj$, with all calculated FDs together with the trajectory ID added into it. Then, in each iteration, different from traditional xx scheme which chooses one candidate once, we extract $l>1$ trajectories whose FDs are the smallest from $FDPQ$ to a candidate set $Cand_q=(T_{c},T_q)$ waiting for calculating real EDR, because in traditional situation the scale of candidates is small, while GPU can only get a remarkably high speedup under a large number of tasks. After $Cand_q$ is extracted, the candidate trajectories $T_{c}$ in it are recovered with the help of $CT$ form cell-based trajectory table and transferred into global memory of GPU, together with the information about $T_q$ and some parameters such as $\epsilon$ needed in the calculation of EDR. At the end of this iteration, the tasks of calculating EDR between each $T_c$ and corrsponding $T_q$ are uniquely assigned to CUDA blocks. 
 
 
 
@@ -848,20 +908,20 @@ We use a xxx scheme in the process of candidate generation with the lowerbound F
 	\label{alg:TSQ_1}
 	\begin{algorithmic}[1]
 		\REQUIRE ~~\\
-		trajectory dataset $\mathbb{D}$; Query trajectory set $T_q=\{t_{q_i}|0\leq i< size(T_q)\}$; Global Grid $G$; Cell-based Trajectory Table $CT$; k value $k$; EDR parameter $\epsilon$;
+		Query trajectory set $T_q=\{t_{q_i}|0\leq i< size(T_q)\}$; Cell-based Trajectory Table $\alltraj$; k value $k$; EDR parameter $\epsilon$;
 		\ENSURE ~~\\
 		Top-k Result $Result_{T_q}=\{result_i|0\leq i< size(T_q),result_i=\simq(t_{q_i})\}$
 		\FOR{$i\in [0,size(T_q)-1]$ \textbf{parallelly}}
 			\STATE $Vq_{freq}\leftarrow generateFVFromTraj(t_{q_i})$
 			\STATE $FDPQ_q\leftarrow initPriorityQueue()$
 			\STATE $EDRPQ_q\leftarrow initPriorityQueue()$
-			\FOR{$L_j \in CT$}
-				\STATE $V_{freq_j}\leftarrow generateFV(CT.L_j)$
+			\FOR{$L_j \in \alltraj$}
+				\STATE $V_{freq_j}\leftarrow generateFV(L_j)$
 				\STATE $FDPQ_i.push(j,calculateFD(V_{freq_j},Vq_{freq}))$
 			\ENDFOR
 		\ENDFOR
 		\STATE $isFinished \leftarrow initArray(FALSE,size(T_q))$
-		\WHILE{$isFinishe~is~not~all~TRUE$}
+		\WHILE{$isFinished$~is~not~all~$TRUE$}
 			\STATE $candPair=[]$
 			\FOR{$i\in [0,size(T_q)-1]~AND~(!isFinished[i])$ \textbf{parallelly}}
 				\STATE $Cand_q\leftarrow popLowest(FDPQ_i)$
@@ -912,7 +972,7 @@ The virtual grid can be seen as all of nodes in one layer of GT-quadtree. Figure
 \subsubsection{GPU-accelerated EDR calculation}
 % introduce how to calculate EDR in parallel on GPU
 % include different size strategy, task generation, data transferring and data arrangement.
-After generating lower bound FD and candidate generation, a mass of EDR calculations tasks $et=(d,q)$ are waited for executing. Each EDR calculation takes in two inputs trajectories $traj_{d}$ and $traj_q$, and output the EDR distance between them. For executing massive EDR calculations in parallel, the key is to finding an approach of dividing the each calculation process into independent sub-processes. Considering the strong independence among the task of different $traj_d$, we assign an EDR calculation taks to each CUDA block in block-level. Another benefit of this block-level division is that we can use low-latency local memory to store some frequently reused information such as points of trajectory within each task, which is helpful for improving throughtput. 
+After generating lower bound FD and candidate generation, a mass of EDR calculations tasks $et=(d,q)$ are waited for executing. Each EDR calculation takes in two inputs trajectories $T_{d}$ and $T_q$, and output the EDR distance between them. For executing massive EDR calculations in parallel, the key is to finding an approach of dividing the each calculation process into independent sub-processes. Considering the strong independence among the task of different $traj_d$, we assign an EDR calculation taks to each CUDA block in block-level. Another benefit of this block-level division is that we can use low-latency local memory to store some frequently reused information such as points of trajectory within each task, which is helpful for improving throughtput. 
 
 % firstly introduce traditional computation method, then point out problem and propose our approach
 The original procedure of EDR calculation is similar to that of classical edit distance, according to the defination of EDR which is given in defination~\ref{def:edr}. A state matrix $S$ is maintained, and $S[i][j]$ is calculated by comparing and choosing the minimun value of $\{S[i-1][j]+1,S[i][j-1]+1,S[i-1][j-1]+subcost\}$. The elements of $S$ are calculated line by line and after all the elements have been calculated, the $S[m][n]$ is the EDR between two trajectories. However, in this procedure, there is a strong relationship amont calculation steps, which means that they cannot be directly mapped to the threads in the CUDA block. For example, when we calculate the states in line 3, $S[3][3]$ is relational to $S[3][2]$.
@@ -944,10 +1004,94 @@ The original procedure of EDR calculation is similar to that of classical edit d
 
 To solve this problem, we analyse the data dependency of original calculation procedure, finding that if we group the states on the same slash together in state matrix, the value of every state only relies on the states of the last two slashes, and meanwhile the calculations of states in the same slash are independent. Figure \ref{fig:EDR}(a) shows an example. When we calculate the states 7, 8, 9 and 10 on slash 4, only the states 4, 5, 6 on slash 3 and states 2, 3 on slash 2 are needed. 
 
-Based on this observation, we propose an iterative procedure of the parallel EDR calculation in each CUDA block. For a task that $|traj_{d}|=m$ and $|traj_q|=n$, an $(m+1)\times (n+1)$-sized state matrix is maintained. In $i$-th iteration, thread $th_j$ calculate the $j$-th state on slash $i$ based on the corresponding states on slash $i-1$ and slash $i-2$. To achieve a coalesce access pattern, we store state matrix $S$ with xxx order (the order shows in figure \ref{fig:EDR}(b)), because based on this origanization values that threads read and write in each iteration are nearby. For example, on 4-th iteration, the read and write requests of threads 0-3 are continuous, contributing to the coalesce access pattern. For slashes which there are thousands of states on them, states are computed by all threads in some loops.
+Based on this observation, we propose an iterative procedure of the parallel EDR calculation in each CUDA block. For a task that $|traj_{d}|=m$ and $|traj_q|=n$, an $(m+1)\times (n+1)$-sized state matrix is maintained. In $i$-th iteration, thread $th_j$ calculate the $j$-th state on slash $i$ based on the corresponding states on slash $i-1$ and slash $i-2$. To achieve a coalesce access pattern, we store state matrix $S$ with xxx order (the order shows in figure \ref{fig:EDR}(b)), because based on this origanization values that threads read and write in each iteration are nearby. For example, on 4-th iteration, the read and write requests of threads 0-3 are continuous, contributing to the coalesce access pattern. For slashes which there are thousands of states on them, states are computed by all threads in some loops. Although not all CUDA threads work in iterations before calculating states on slash $N_{core}$, we argue that they have a small propotion of all iterations, because trajectories usually are longer than 200 meaning that there are usually more than 400 iterations in total, while $N_{core}$ is 64 or 128 on most of GPU. Therefore, a reasonble load balance is achieved in our iterative procedure.
+
+\begin{algorithm}[t]
+	\algsetup{linenosize=\tiny}
+	\scriptsize
+	\caption{Parallel EDR Calculation}
+	\label{alg:EDR}
+	\begin{algorithmic}[1]
+		\REQUIRE ~~\\
+		Two sets of trajectories: $\mathbb{T}_D,\mathbb{T}_Q$; Tasks information $Cand_q$; Threshold of EDR: $\epsilon$; Number of threads in a CUDA block $N_{thread}$
+		\ENSURE ~~\\
+		All EDR distance between trajectories in two sets: $EDR(T_{q},T_{d})$, $\forall (T_{q},T_{d})\in \{Cand_q|\forall q\in Q\}$
+		
+		\STATE Assign each $(T_d,T_q)$ pair to a thread block
+		\STATE Initial an array to store results of all pairs assigned: $result[size(Cand_q)]$
+		\FOR{CUDA block $bID$ \textbf{parallelly}}
+			\STATE Initial matrix $S$ in global memory: $S[len(T_q)+1][len(T_d)+1]$
+			\STATE $maxLen \leftarrow max(len(T_q),len(T_d))$
+			\STATE Load trajectories in local memory: $Tq[len(T_q)]$, $Td[len(T_d)]$
+			\STATE $slashNum \leftarrow len(T_q)+len(T_d)+1$
+			\STATE $loopPerThread \leftarrow \lceil maxLen/N_{thread}\rceil$
+			\FOR{slash $i$ from 1 to $slashNum$}
+				\FOR{thread $tID$ \textbf{parallelly}}
+					\STATE $sl_1 \leftarrow getSlashOffset(i-1)$
+					\STATE $sl_2 \leftarrow getSlashOffset(i-2)$
+					\FOR{each loop $j$ from 0 to $loopPerThread-1$}
+						\STATE $sID\leftarrow j*threadNum+tID$
+						\STATE $s_1 \leftarrow getUpState(sl_1,tID,j)$
+						\STATE $s_2 \leftarrow getLeftState(sl_1,tID,j)$
+						\STATE $s_3 \leftarrow getCrossState(sl_2,tID,j)$
+						\STATE $subCost\leftarrow geneSubCost(Tq,Td,\epsilon)$
+						\STATE $tempState[loopPerThread]\leftarrow min(s_1,s_2,s_3+subCost)$ 
+					\ENDFOR
+				\ENDFOR
+				\FOR{each thread $tID$ \textbf{parallelly}}
+					\FOR{each loop $j$ from 0 to $loopPerThread-1$}
+						\STATE $sl_{now}\leftarrow getSlashOffset(i)$
+						\STATE $sl_{now}[N_{thread}*j+tID]\leftarrow tempState[j]$
+					\ENDFOR
+				\ENDFOR
+			\ENDFOR
+			\STATE $EDR(T_q,T_d)\leftarrow S[len(T_q+1)][len(T_d+1)]$
+		\ENDFOR
+		\RETURN $EDR(\mathbb{T}_d,\mathbb{T}_q)$
+	\end{algorithmic}
+\end{algorithm}
 
 \eat{
 We designed an iterative framework for parallel EDR calculation. According to the defination of EDR which is given in defination~\ref{def:edr}, the process of EDR calculation can be divided into several independent steps. Figure \ref{fig:DPstate} shows an example of calculating the EDR between two trajectorie $traj_q$ and $traj_d$ with length $m$ and $n$. Each value in a state (represented as $state[i][j]$) is calculated by comparing and choosing the minimun value of $\{state[i-1][j]+1,state[i][j-1]+1,state[i-1][j-1]+subcost\}$. After all the states have been calculated, the $state[m][n]$ is the EDR between two trajectories. If we use slashes to group the states, we notice that the values of states in one slash rely on the value of states in two upper left slashes. For example, in figure \ref{fig:DPstate}, if we want to calculate the states on slash 3, the states on slash 1 and slash 2 are needed. Meanwhile, comparing operations within a slash have no relationship, inspiring us to invoke the calculations within the same slash in parallel, forming the basic idea of our solution.
+
+\begin{algorithm}[t]
+	\algsetup{linenosize=\tiny}
+	\scriptsize
+	\caption{Parallel EDR Calculation}
+	\label{alg:EDR}
+	\begin{algorithmic}[1]
+		\REQUIRE ~~\\
+		Two sets of trajectories: $\mathbb{T}_D,\mathbb{T}_Q$; Tasks information $Cand_q$; Threshold of EDR: $\epsilon$; parameters  $\epsilon$, $N_{thread}$
+		\ENSURE ~~\\
+		all EDR distance between trajectories in two sets: $EDR(T_{q},T_{d})$, $\forall (T_{q},T_{d})\in \{Cand_q|\forall q\in Q\}$
+		
+		\STATE assign each $(T_d,T_q)$ pair to a thread block
+		\STATE initial an array to store results of all pairs assigned: $result[size(Cand_q)]$
+		\FOR{each CUDA block $bID$ \textbf{parallelly}}
+			\STATE initial matrix $S$ in global memory: $S[len(T_q)+1][len(T_d)+1]$
+			\STATE $maxLength \leftarrow max(len(T_q),len(T_d))$
+			\STATE load trajectories in local memory: $Tq[len(T_q)]$, $Td[len(T_d)]$
+			\STATE $slashNum \leftarrow len(T_q)+len(T_d)+1$
+			\STATE $loopPerThread \leftarrow \lceil maxLength/threadNum\rceil$
+			\FOR{each slash $i$ from 1 to $slashNum$}
+				\FOR{each thread $tID$ \textbf{parallelly}}
+					\STATE initial an array in GPU SM's register to store states calculated: $tempState[loopPerThread]$
+						\FOR{each loop $j$ from 0 to $loopPerThread-1$}
+							\STATE update $tempState[j*threadNum+tID]$ using states on last two slashes
+						\ENDFOR
+					\ENDFOR
+				\FOR{each thread $tID$ \textbf{parallelly}}
+					\FOR{each loop $j$, $j\in [0,loopPerThread-1]$}
+						\STATE flush $lastTwoSlash[0][j*threadNum+tID]$ to $state$ in corresponding position
+						\STATE $lastTwoSlash[0][j*threadNum+tID]\leftarrow lastTwoSlash[1][j*threadNum+tID]$
+						\STATE update $lastTwoSlash[1][j*threadNum+tID]$ using $tempState[j]$
+					\ENDFOR
+				\ENDFOR
+			\ENDFOR
+			\STATE $result[bID]\leftarrow state[len(t_1)][len(t_2)]$
+		\ENDFOR
+	\end{algorithmic}
+\end{algorithm}
 
 Based on this framework, we propose a procedure of calculating EDRs in parallel on GPU, as algorithm \ref{alg:EDR} shows, whose implement is based on CUDA. Given a set of EDR calculation tasks, we first assign each of them to a block to make GPU full-loading, in order to improve the throughtput(line 1-2). In each block, the values of states are calculated in $(2\times max\{m,n\}+1)$ loops from $state[0][0]$ to $state[m][n]$ slash by slash (line 10). For example, in figure \ref{fig:DPstate}, state on slash 1 is generated, and then slash 2, slash 3, ..., until the slash $(2m+1)$. In each loop data on two before slashes are stored in high-speed local memory of each SM, which is allocated before starting loops (line 6), because they will be frequently accessed by threads. Noting that the length of trajectory is almost smaller than 2048, it is enough for space of local memory to store these data. As for the state matrix of this calculation, we store them according to the order of slash, as figure \ref{fig:DPstate} shows. In this case, the data required by threads are nearby, assuring the coalesce accessing pattern.
 
@@ -1012,15 +1156,20 @@ We can see that in our solution, the number of steps needed for EDR?calculation 
 We propose a multi-GPU implementation of our strategy dealing with large-scale of EDR calculation from all top-k trajectory queries by dividing the set of EDR calculation tasks into several equal size part, to achieve a load balancing and maximum usage of multiple GPUs. Before running these tasks, we use an independent memory allocated table (MAT) to store trajectory data when they are loaded into GPU global memory first, because in this way if a trajectory has been loaded into global memory, by looking for MAT we can avoid the duplicated low-speed data transfering between memory and GPU. However, the volume of the GPU global memory is usually so limited that not all trajectory data can be filled into it. To make an tradeoff, we maintain a memory pool and integrate it to MAT. If the pool is full, we use Least Recently Used (LRU) algorithm to drop some outdated trajectories. This strategy is efficient in real life because there exists hotspot within queries. For example, trajectories in city center may be required by queries more frequently because the population in city center is denser than rural area. After the kernel finishing, EDR calculation results from different GPUs are collected and query engine then filters the candidates, as shown in line 9 in algorithm \ref{alg:TSQ_1}.
 }
 \subsubsection{Complexity Analysis}
-We analyse the complexity of our approach of top-k similarity query. 
-
+We finally analyse the complexity of our approach of top-k similarity query. We define computing one state in EDR calculation as the unit of cost. Denoting $E$ as the set of all neccessary EDR calculation tasks and $eid$ is the ID of task in $E$, for original EDR calculation algorithm on CPU, the total time cost is: 
 \begin{equation}
-Cost_{EDR(CPU)} = \sum_{q=1}^{N_Q} len(t_q)*len(t_D)
+Cost_{EDR(CPU)} = \sum_{e=1}^{len(E)} len(E[e].T_q)*len(E[e].T_d)
 \end{equation}
 
+Denoting $N_{SM}$ and $N_{core}$ as the number of SMs in GPU and cores in an SM respectively, the total time cost of our algorithm on GPU is:
 \begin{equation}
-Cost_{EDR(GPU)} = \sum_{q=1}^{N_Q} \frac{\lceil \frac{len(t_q)}{N_{core}} \rceil + \lceil \frac{len(t_D)}{N_{core}} \rceil}{N_{SM}} [len(t_q)+len(t_D)]
+\begin{split}
+Cost_{EDR(GPU)} = &\sum_{e=1}^{len(E)} \{\frac{\lceil \frac{len(E[e].T_q)}{N_{core}} \rceil + \lceil \frac{len(E[e].T_d)}{N_{core}} \rceil}{N_{SM}}\times\\& [len(E[e].T_q)+len(E[e].T_d)]\}
+\end{split}
 \end{equation}
+
+Under a typical condition that $N_{core}=128$,$N_{SM}={16}$ and $len(T.q)=len(T.d)=600$, we can see that the cost of original EDR calculation algorithm is 360,000, while that in our approach is 750. Although the frequency of cores on GPU is lower than CPU, a remarkble speedup can be obtained by our approach.
+
 
 \section{Optimization}\label{sec:optimization}
 
@@ -1192,7 +1341,7 @@ In this section we study the speedup attained by our GPU-based approach under de
 	\end{small} 
 \end{table}
 
-Table \ref{tab:speedup} shows the speedup ratio for two kinds of queries. Our approach achieves about 80x speedup in evaluation of top-k similarity query for single GPU, and 42x in dual GPUs environment. The high speedup ratio comes from the parallel execution of compute-intensive calculation of EDR distance. For range query, although our approach achieves about 8.28x speedup for single GPU and 14.59x speedup for dual GPUs, slow data transfering between host memory and GPU may restrict the speedup ratio. This is because only some comparison operations are needed in the refinement procedure of range query, which means it is not a compute-intensive task.
+Table \ref{tab:speedup} shows the speedup ratio for two kinds of queries. Our approach achieves about 80x speedup in evaluation of top-k similarity query for single GPU, and 42x in dual GPUs environment. The high speedup ratio comes from the parallel execution of compute-intensive calculation of EDR distance. For range query, although our approach achieves about 8.28x speedup for single GPU and 14.59x speedup for dual GPUs, slow data transfering between main memory and GPU may restrict the speedup ratio. This is because only some comparison operations are needed in the refinement procedure of range query, which means it is not a compute-intensive task.
 
 \subsection{Scalability}
 
