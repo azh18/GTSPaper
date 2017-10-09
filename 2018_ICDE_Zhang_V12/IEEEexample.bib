@@ -1,0 +1,647 @@
+
+IEEEexample.bib
+V1.12 (2007/01/11)
+Copyright (c) 2002-2007 by Michael Shell
+See: http://www.michaelshell.org/
+for current contact information.
+
+This is an example BibTeX database for the official IEEEtran.bst
+BibTeX style file.
+
+Some entries call strings that are defined in the IEEEabrv.bib file.
+Therefore, IEEEabrv.bib should be loaded prior to this file.
+Usage:
+
+\bibliographystyle{./IEEEtran}
+\bibliography{./IEEEabrv,./IEEEexample}
+
+
+Support sites:
+http://www.michaelshell.org/tex/ieeetran/
+http://www.ctan.org/tex-archive/macros/latex/contrib/IEEEtran/
+and/or
+http://www.ieee.org/
+
+*************************************************************************
+Legal Notice:
+This code is offered as-is without any warranty either expressed or
+implied; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE!
+User assumes all risk.
+In no event shall IEEE or any contributor to this code be liable for
+any damages or losses, including, but not limited to, incidental,
+consequential, or any other damages, resulting from the use or misuse
+of any information contained here.
+
+All comments are the opinions of their respective authors and are not
+necessarily endorsed by the IEEE.
+
+This work is distributed under the LaTeX Project Public License (LPPL)
+( http://www.latex-project.org/ ) version 1.3, and may be freely used,
+distributed and modified. A copy of the LPPL, version 1.3, is included
+in the base LaTeX documentation of all distributions of LaTeX released
+2003/12/01 or later.
+Retain all contribution notices and credits.
+** Modified files should be clearly indicated as such, including  **
+** renaming them and changing author support contact information. **
+
+File list of work: IEEEabrv.bib, IEEEfull.bib, IEEEexample.bib,
+                   IEEEtran.bst, IEEEtranS.bst, IEEEtranSA.bst,
+                   IEEEtranN.bst, IEEEtranSN.bst, IEEEtran_bst_HOWTO.pdf
+*************************************************************************
+
+
+Note that, because the example references were taken from actual IEEE
+publications, these examples do not always contain the full amount
+of information that may be desirable (for use with other BibTeX styles).
+In particular, full names (not abbreviated with initials) should be
+entered whenever possible as some (non-IEEE) bibliography styles use
+full names. IEEEtran.bst will automatically abbreviate when it encounters
+full names.
+
+
+
+@inproceedings{DBLP:conf/sigmod/ChenOO05,
+	author    = {Lei Chen and
+	M. Tamer {\"{O}}zsu and
+	Vincent Oria},
+	title     = {Robust and Fast Similarity Search for Moving Object Trajectories},
+	booktitle = {{SIGMOD}},
+	pages     = {491--502},
+	year	  = {2005}
+}
+
+@article{DBLP:journals/gis/Brunsdon13,
+	author    = {Chris Brunsdon},
+	title     = {Computing with spatial trajectories, edited by Yu Zheng, Xiaofang Zhou,
+	Berlin, Springer, 2011, 1st ed., {\textsterling}84.99 (hardcover),
+	308 pp. {ISBN-10:} 1461416280; {ISBN-13:} 978-1461416289},
+	journal   = {International Journal of Geographical Information Science},
+	volume    = {27},
+	number    = {1},
+	pages     = {208--209},
+	year      = {2013}
+}
+
+@article{DBLP:journals/tist/Zheng15,
+	author    = {Yu Zheng},
+	title     = {Trajectory Data Mining: An Overview},
+	pages     = {29:1--29:41},
+	journal   = {{ACM} {TIST} 2015}
+}
+
+@inproceedings{DBLP:conf/gis/LeeSCC12,
+	author    = {Wang-Chien Lee and Weiping Si and Ling-Jyh Chen and Meng-Chang Chen},
+	title     = {{HTTP}: a new framework for bus travel time prediction based on historical trajectories},
+	booktitle = {ACM GIS},
+	pages     = {279--288},
+	year      = {2013}
+}
+
+@INPROCEEDINGS{7498315,
+	author={H. Doraiswamy and H. T. Vo and C. T. Silva and J. Freire},
+	booktitle={ICDE},
+	title={A {GPU}-based index to support interactive spatio-temporal queries over historical data},
+	pages={1086-1097},
+	year={2016}
+}
+
+@inproceedings{GPUTaxi,
+	author = {Zhang, J. and You, S. and Gruenwald, L.},
+	title = {High-Performance Spatial Query Processing on Big Taxi Trip Data Using {GPGPUs}},
+	booktitle = {Big Data Congress},
+	pages = {72-79},
+	year={2014}
+}
+
+@inproceedings{EDWP15,
+	author = {Ranu, S. and Deepak, P. and Telang, A. D. and Deshpande, P. and Raghavan, S.},
+	title = {Indexing and matching trajectories under inconsistent sampling rates},
+	booktitle = {ICDE},
+	ISBN = {1063-6382},
+	pages = {999-1010},
+	year={2015}
+}
+
+@inproceedings{DBLP:conf/icde/VlachosGK02,
+	author    = {Michail Vlachos and
+	Dimitrios Gunopulos and
+	George Kollios},
+	title     = {Discovering Similar Multidimensional Trajectories},
+	booktitle = {ICDE},
+	pages     = {673--684},
+	year      = {2002}
+}
+
+@inproceedings{DBLP:conf/bigdataconf/LealGZY15,
+	author    = {Eleazar Leal and
+	Le Gruenwald and
+	Jianting Zhang and
+	Simin You},
+	title     = {{TKSimGPU}: {A} parallel top-K trajectory similarity query processing
+	algorithm for {GPGPUs}},
+	booktitle = {Big Data},
+	pages     = {461--469},
+	year      = {2015}
+}
+
+
+
+@inproceedings{DBLP:conf/icde/YiJF98,
+	author    = {Byoung{-}Kee Yi and
+	H. V. Jagadish and
+	Christos Faloutsos},
+	title     = {Efficient Retrieval of Similar Time Sequences Under Time Warping},
+	booktitle = {ICDE},
+	pages     = {201--208},
+	year      = {1998}
+}
+
+@inproceedings{DBLP:conf/vldb/ChenN04,
+	author    = {Lei Chen and
+	Raymond T. Ng},
+	title     = {On The Marriage of Lp-norms and Edit Distance},
+	booktitle = {VLDB},
+	pages     = {792--803},
+	year      = {2004}
+}
+
+@article{nvidia2014toolkit,
+	title={Toolkit Documentation},
+	author={Nvidia, CUDA},
+	journal={NVIDIA CUDA Getting Started Guide for Linux},
+	year={2014}
+}
+
+@inproceedings{DBLP:conf/cikm/WangZXZZS14,
+	author    = {Haozhou Wang and
+	Kai Zheng and
+	Jiajie Xu and
+	Bolong Zheng and
+	Xiaofang Zhou and
+	Shazia Wasim Sadiq},
+	title     = {SharkDB: An In-Memory Column-Oriented Trajectory Storage},
+	booktitle = {CIKM},
+	pages     = {1409--1418},
+	year      = {2014}
+}
+
+@inproceedings{DBLP:conf/icde/ChenDS17,
+	author    = {Guoyang Chen and
+	Yufei Ding and
+	Xipeng Shen},
+	title     = {Sweet {KNN:} An Efficient {KNN} on {GPU} through Reconciliation between
+	Redundancy Removal and Regularity},
+	booktitle = {ICDE},
+	pages     = {621--632},
+	year      = {2017}
+}
+
+@article{DBLP:journals/is/ZhangYG14,
+	author    = {Jianting Zhang and
+	Simin You and
+	Le Gruenwald},
+	title     = {Parallel online spatial and temporal aggregations on multi-core CPUs
+	and many-core {GPU}s},
+	journal   = {Inf. Syst.},
+	volume    = {44},
+	pages     = {134--154},
+	year      = {2014},
+}
+
+@inproceedings{DBLP:conf/bigdata/LealGZY16,
+	author    = {Eleazar Leal and
+	Le Gruenwald and
+	Jianting Zhang and
+	Simin You},
+	title     = {Towards an Efficient Top-K Trajectory Similarity Query Processing
+	Algorithm for Big Trajectory Data on {GPGPUs}},
+	booktitle = {Big Data Congress 2016},
+	pages     = {206--213},
+	year      = {2016},
+}
+
+@book{munkres2000topology,
+	title={Topology},
+	author={Munkres, James R},
+	year={2000},
+	publisher={Prentice Hall}
+}
+
+
+@inproceedings{DBLP:conf/vldb/Keogh02,
+	author    = {Eamonn J. Keogh},
+	title     = {Exact Indexing of Dynamic Time Warping},
+	booktitle = {{VLDB}},
+	pages     = {406--417},
+	year      = {2002},
+}
+
+@inproceedings{RoutePlan,
+	author = {Hu, Gang and Shao, Jie and Shen, Fumin and Huang, Zi and Shen, Heng Tao},
+	title = {Unifying Multi-Source Social Media Data for Personalized Travel Route Planning},
+	booktitle = {SIGIR},
+	pages = {893--896},
+	year = {2017},
+}
+
+@article{DBLP:journals/tkde/ZhengZYSZ14,
+	author    = {Kai Zheng and
+	Yu Zheng and
+	Nicholas Jing Yuan and
+	Shuo Shang and
+	Xiaofang Zhou},
+	title     = {Online Discovery of Gathering Patterns over Trajectories},
+	journal   = {{IEEE TKDE}},
+	volume    = {26},
+	number    = {8},
+	pages     = {1974--1988},
+	year      = {2014},
+}
+
+@inproceedings{DBLP:conf/sigmod/ArmbrustXLHLBMK15,
+	author    = {Michael Armbrust and
+	Reynold S. Xin and
+	Cheng Lian and
+	Yin Huai and
+	Davies Liu and
+	Joseph K. Bradley and
+	Xiangrui Meng and
+	Tomer Kaftan and
+	Michael J. Franklin and
+	Ali Ghodsi and
+	Matei Zaharia},
+	title     = {Spark {SQL:} Relational Data Processing in Spark},
+	booktitle = {SIGMOD},
+	pages     = {1383--1394},
+	year      = {2015},
+}
+
+@inproceedings{DBLP:conf/gis/LettichOS15,
+	author    = {Francesco Lettich and
+	Salvatore Orlando and
+	Claudio Silvestri},
+	title     = {Processing streams of spatial k-NN queries and position updates on
+	manycore {GPU}s},
+	booktitle = {SIGSPATIAL},
+	pages     = {26:1--26:10},
+	year      = {2015},
+}
+
+@inproceedings{DBLP:conf/www/ZhengZXM09,
+	author    = {Yu Zheng and
+	Lizhu Zhang and
+	Xing Xie and
+	Wei{-}Ying Ma},
+	title     = {Mining interesting locations and travel sequences from {GPS} trajectories},
+	booktitle = {WWW},
+	pages     = {791--800},
+	year      = {2009},
+}
+
+@inproceedings{DBLP:conf/huc/ZhengLCXM08,
+	author    = {Yu Zheng and
+	Quannan Li and
+	Yukun Chen and
+	Xing Xie and
+	Wei{-}Ying Ma},
+	title     = {Understanding mobility based on {GPS} data},
+	booktitle = {UbiComp},
+	pages     = {312--321},
+	year      = {2008},
+}
+
+@article{DBLP:journals/debu/ZhengXM10,
+	author    = {Yu Zheng and
+	Xing Xie and
+	Wei{-}Ying Ma},
+	title     = {GeoLife: {A} Collaborative Social Networking Service among User, Location
+	and Trajectory},
+	journal   = {{IEEE} Data Eng. Bull.},
+	volume    = {33},
+	number    = {2},
+	pages     = {32--39},
+	year      = {2010},
+}
+
+@inproceedings{DBLP:conf/cidr/ChakkaEP03,
+	author    = {V. Prasad Chakka and
+	Adam Everspaugh and
+	Jignesh M. Patel},
+	title     = {Indexing Large Trajectory Data Sets With {SETI}},
+	booktitle = {CIDR},
+	year      = {2003},
+}
+
+@article{DBLP:journals/geoinformatica/BoteaMNS08,
+	author    = {Viorica Botea and
+	Daniel Mallett and
+	Mario A. Nascimento and
+	J{\"{o}}rg Sander},
+	title     = {{PIST:} An Efficient and Practical Indexing Technique for Historical
+	Spatio-Temporal Point Data},
+	journal   = {GeoInformatica},
+	volume    = {12},
+	number    = {2},
+	pages     = {143--168},
+	year      = {2008},
+}
+
+@inproceedings{DBLP:conf/sigmod/Guttman84,
+	author    = {Antonin Guttman},
+	title     = {R-Trees: {A} Dynamic Index Structure for Spatial Searching},
+	booktitle = {SIGMOD},
+	pages     = {47--57},
+	year      = {1984},
+}
+
+@inproceedings{DBLP:conf/sigmod/BayerM70,
+	author    = {Rudolf Bayer and
+	Edward M. McCreight},
+	title     = {Organization and Maintenance of Large Ordered Indexes},
+	booktitle = {SIGFIDET Workshop},
+	pages     = {107--141},
+	year      = {1970},
+}
+
+@inproceedings{DBLP:conf/vldb/PfoserJT00,
+	author    = {Dieter Pfoser and
+	Christian S. Jensen and
+	Yannis Theodoridis},
+	title     = {Novel Approaches to the Indexing of Moving Object Trajectories},
+	booktitle = {{VLDB}},
+	pages     = {395--406},
+	year      = {2000},
+}
+
+@inproceedings{DBLP:conf/sigmod/SaltenisJLL00,
+	author    = {Simonas Saltenis and
+	Christian S. Jensen and
+	Scott T. Leutenegger and
+	Mario A. L{\'{o}}pez},
+	title     = {Indexing the Positions of Continuously Moving Objects},
+	booktitle = {{SIGMOD}},
+	pages     = {331--342},
+	year      = {2000},
+}
+
+@inproceedings{DBLP:conf/icmcs/TheodoridisVS96,
+	author    = {Yannis Theodoridis and
+	Michalis Vazirgiannis and
+	Timos K. Sellis},
+	title     = {Spatio-Temporal Indexing for Large Multimedia Applications},
+	booktitle = {{ICMCS}},
+	pages     = {441--448},
+	year      = {1996},
+}
+
+@inproceedings{DBLP:conf/icde/Cudre-MaurouxWM10,
+	author    = {Philippe Cudr{\'{e}}{-}Mauroux and
+	Eugene Wu and
+	Samuel Madden},
+	title     = {TrajStore: An adaptive storage system for very large trajectory data
+	sets},
+	booktitle = {{ICDE}},
+	pages     = {109--120},
+	year      = {2010},
+}
+
+@inproceedings{Zhang:2012:USH,
+	author = {Zhang, Jianting and You, Simin and Gruenwald, Le},
+	title = {U2STRA: High-performance Data Management of Ubiquitous Urban Sensing Trajectories on {GPGPU}s},
+	booktitle = {CDMW},
+	year = {2012},
+	isbn = {978-1-4503-1709-2},
+	pages = {5--12},
+}
+
+@article{DBLP:journals/tpds/GowanlockC16,
+	author    = {Michael G. Gowanlock and
+	Henri Casanova},
+	title     = {Distance Threshold Similarity Searches: Efficient Trajectory Indexing
+	on the {GPU}},
+	journal   = {{IEEE} Trans. Parallel Distrib. Syst.},
+	volume    = {27},
+	number    = {9},
+	pages     = {2533--2545},
+	year      = {2016},
+}
+
+@article{DBLP:journals/pvldb/AjiWVLL0S13,
+	author    = {Ablimit Aji and
+	Fusheng Wang and
+	Hoang Vo and
+	Rubao Lee and
+	Qiaoling Liu and
+	Xiaodong Zhang and
+	Joel H. Saltz},
+	title     = {Hadoop-GIS: {A} High Performance Spatial Data Warehousing System over
+	MapReduce},
+	journal   = {{PVLDB}},
+	volume    = {6},
+	number    = {11},
+	pages     = {1009--1020},
+	year      = {2013},
+}
+
+@inproceedings{DBLP:conf/usenix/LiHGSA15,
+	author    = {Shen Li and
+	Shaohan Hu and
+	Raghu K. Ganti and
+	Mudhakar Srivatsa and
+	Tarek F. Abdelzaher},
+	title     = {Pyro: {A} Spatial-Temporal Big-Data Storage System},
+	booktitle = {{USENIX} {ATC}},
+	pages     = {97--109},
+	year      = {2015}
+}
+
+@inproceedings{DBLP:conf/sigmod/XieL0LZG16,
+	author    = {Dong Xie and
+	Feifei Li and
+	Bin Yao and
+	Gefei Li and
+	Liang Zhou and
+	Minyi Guo},
+	title     = {Simba: Efficient In-Memory Spatial Analytics},
+	booktitle = {{SIGMOD}},
+	pages     = {1071--1085},
+	year      = {2016},
+}
+
+@article{DBLP:journals/pvldb/XieLP17,
+	author    = {Dong Xie and
+	Feifei Li and
+	Jeff M. Phillips},
+	title     = {Distributed Trajectory Similarity Search},
+	journal   = {{PVLDB}},
+	volume    = {10},
+	number    = {11},
+	pages     = {1478--1489},
+	year      = {2017},
+}
+
+@article{DBLP:journals/pvldb/LuSCO12,
+	author    = {Wei Lu and
+	Yanyan Shen and
+	Su Chen and
+	Beng Chin Ooi},
+	title     = {Efficient Processing of k Nearest Neighbor Joins using MapReduce},
+	journal   = {{PVLDB}},
+	volume    = {5},
+	number    = {10},
+	pages     = {1016--1027},
+	year      = {2012}
+}
+
+@article{DBLP:journals/pvldb/ZhangWYGLZ15,
+	author    = {Kai Zhang and
+	Kaibo Wang and
+	Yuan Yuan and
+	Lei Guo and
+	Rubao Lee and
+	Xiaodong Zhang},
+	title     = {Mega-KV: {A} Case for {GPU}s to Maximize the Throughput of In-Memory
+	Key-Value Stores},
+	journal   = {{PVLDB}},
+	volume    = {8},
+	number    = {11},
+	pages     = {1226--1237},
+	year      = {2015},
+}
+
+@electronic{DidiExample,
+	author        = "Maya Kosoff",
+	title         = "Uber is getting dwarfed by its Chinese rival, which gives 3 million rides a day",
+	url           = "http://www.businessinsider.com/chinas-uber-rival-didi-kuaidi-does-3-million-rides-a-day-2015-6",
+	month         = jun,
+	year          = "2015"
+}
+
+@book{morton1966computer,
+	title={A computer oriented geodetic data base and a new technique in file sequencing},
+	author={Morton, Guy M},
+	year={1966},
+	publisher={International Business Machines Company New York}
+}
+
+@article{DBLP:journals/cacm/Bentley75,
+	author    = {Jon Louis Bentley},
+	title     = {Multidimensional Binary Search Trees Used for Associative Searching},
+	journal   = {Commun. {ACM}},
+	volume    = {18},
+	number    = {9},
+	pages     = {509--517},
+	year      = {1975},
+
+}
+
+@inproceedings{DBLP:conf/kdd/BaoHRLZ17,
+	author    = {Jie Bao and
+	Tianfu He and
+	Sijie Ruan and
+	Yanhua Li and
+	Yu Zheng},
+	title     = {Planning Bike Lanes based on Sharing-Bikes' Trajectories},
+	booktitle = {{SIGKDD}},
+	pages     = {1377--1386},
+	year      = {2017},
+}
+
+@inproceedings{DBLP:journals/pvldb/KallmanKNPRZJMSZHA08,
+	author    = {Robert Kallman and
+	Hideaki Kimura and
+	Jonathan Natkins and
+	Andrew Pavlo and
+	Alex Rasin and
+	Stanley B. Zdonik and
+	Evan P. C. Jones and
+	Samuel Madden and
+	Michael Stonebraker and
+	Yang Zhang and
+	John Hugg and
+	Daniel J. Abadi},
+	title     = {H-store: a high-performance, distributed main memory transaction processing
+	system},
+	booktitle   = {{PVLDB}},
+	volume    = {1},
+	number    = {2},
+	pages     = {1496--1499},
+	year      = {2008},
+}
+
+
+An example of a IEEEtran control entry which can change some IEEEtran.bst
+settings. An entry like this must be cited via \bstctlcite{} command
+before the first real \cite{}. The same entry key cannot be called twice
+(just like multiple \cite{} of the same entry key place only one entry
+in the bibliography.)
+The available control fields are:
+
+CTLuse_article_number
+"no" turns off the display of the number for articles.
+"yes" enables
+
+CTLuse_paper
+"no" turns off the display of the paper and type fields in inproceedings.
+"yes" enables
+
+CTLuse_forced_etal
+"no" turns off the forced use of "et al."
+"yes" enables
+
+CTLmax_names_forced_etal
+The maximum number of names that can be present beyond which an "et al."
+usage is forced. Be sure that CTLnames_show_etal (below)
+is not greater than this value!
+
+CTLnames_show_etal
+The number of names that will be shown with a forced "et al.".
+Must be less than or equal to CTLmax_names_forced_etal
+
+CTLuse_alt_spacing
+"no" turns off the alternate interword spacing for entries with URLs.
+"yes" enables
+
+CTLalt_stretch_factor
+If alternate interword spacing for entries with URLs is enabled, this is
+the interword spacing stretch factor that will be used. For example, the
+default "4" here means that the interword spacing in entries with URLs can
+stretch to four times normal. Does not have to be an integer.
+
+CTLdash_repeated_names
+"no" turns off the "dashification" of repeated (i.e., identical to those
+of the previous entry) names. IEEE normally does this.
+"yes" enables
+
+CTLname_format_string
+The name format control string as explained in the BibTeX style hacking
+guide.
+IEEE style "{f.~}{vv~}{ll}{, jj}" is the default,
+
+CTLname_latex_cmd
+A LaTeX command that each name will be fed to (e.g., "\textsc").
+Leave empty if no special font is desired for the names.
+The default is empty.
+
+CTLname_url_prefix
+The prefix text used before URLs.
+The default is "[Online]. Available:" A space will be inserted after this
+text. If this space is not wanted, just use \relax at the end of the
+prefix text.
+
+
+Those fields that are not to be changed can be left out.
+@IEEEtranBSTCTL{IEEEexample:BSTcontrol,
+  CTLuse_article_number     = "yes",
+  CTLuse_paper              = "yes",
+  CTLuse_forced_etal        = "no",
+  CTLmax_names_forced_etal  = "10",
+  CTLnames_show_etal        = "1",
+  CTLuse_alt_spacing        = "yes",
+  CTLalt_stretch_factor     = "4",
+  CTLdash_repeated_names    = "yes",
+  CTLname_format_string     = "{f.~}{vv~}{ll}{, jj}",
+  CTLname_latex_cmd         = "",
+  CTLname_url_prefix        = "[Online]. Available:"
+}
